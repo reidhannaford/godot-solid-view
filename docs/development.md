@@ -39,6 +39,7 @@ After changing `solid_view.glsl`, a windowed run is also the compile check: a ba
 - The normal and roughness prepass only runs when the camera has a valid environment, which is one reason the controller always sets one.
 - A post-opaque write only survives without MSAA; with MSAA the colour buffer is resolved after the transparent pass, overwriting it. The controller turns MSAA off per viewport while active, and the editor re-applies project settings to its viewports on a settings change, which is why `apply()` runs every frame while active.
 - A `RefCounted` can't be named `_get`, `_set` or any other Object virtual; the settings helper is `_read`.
+- Preload constants need addon-specific names (`SolidViewSettings`, not `Settings`): a game project with a global `class_name` of the same name makes the plugin fail to parse there, even though it parses fine here.
 
 ## Releasing
 

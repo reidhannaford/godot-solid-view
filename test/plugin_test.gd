@@ -3,7 +3,7 @@ extends SceneTree
 ## and that the controller takes over and restores the editor viewports.
 ## Run: godot --headless --editor --path . -s res://test/plugin_test.gd
 
-const Controller := preload("res://addons/solid_view/solid_view_controller.gd")
+const SolidViewController := preload("res://addons/solid_view/solid_view_controller.gd")
 
 var _failures: int = 0
 
@@ -26,7 +26,7 @@ func _run() -> void:
 	var msaa_before := viewport.msaa_3d
 	var env_before := camera.environment
 
-	var controller := Controller.new()
+	var controller := SolidViewController.new()
 	controller.active = true
 	_check(camera.environment == controller.environment, "camera takes the solid environment")
 	_check(camera.compositor == controller.compositor, "camera takes the compositor")

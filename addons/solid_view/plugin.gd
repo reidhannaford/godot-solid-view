@@ -3,16 +3,16 @@ extends EditorPlugin
 ## Adds a Solid toggle and its options menu to the 3D editor toolbar, and a
 ## shortcut (solid_view/toggle, Alt+Z by default) to flip it.
 
-const Controller := preload("solid_view_controller.gd")
-const Settings := preload("solid_view_settings.gd")
+const SolidViewController := preload("solid_view_controller.gd")
+const SolidViewSettings := preload("solid_view_settings.gd")
 const SolidViewEffect := preload("solid_view_effect.gd")
 
 const SHORTCUT_PATH := "solid_view/toggle"
 
 enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, DEFAULT_MATCAP }
 
-var _controller: Controller
-var _settings: Settings
+var _controller: SolidViewController
+var _settings: SolidViewSettings
 var _bar: HBoxContainer
 var _toggle: Button
 var _menu: MenuButton
@@ -21,9 +21,9 @@ var _file_dialog: EditorFileDialog
 
 func _enter_tree() -> void:
 	_register_shortcut()
-	_settings = Settings.new()
+	_settings = SolidViewSettings.new()
 	_settings.load()
-	_controller = Controller.new()
+	_controller = SolidViewController.new()
 	_apply_settings()
 
 	_bar = HBoxContainer.new()
@@ -128,11 +128,11 @@ func _refresh_menu() -> void:
 	popup.set_item_checked(popup.get_item_index(Item.TEXTURE), _settings.texture_color)
 	popup.set_item_checked(popup.get_item_index(Item.CAVITY), _settings.cavity)
 	popup.set_item_checked(popup.get_item_index(Item.OUTLINE), _settings.outline)
-	popup.set_item_disabled(popup.get_item_index(Item.DEFAULT_MATCAP), _settings.matcap_path == Settings.DEFAULT_MATCAP)
+	popup.set_item_disabled(popup.get_item_index(Item.DEFAULT_MATCAP), _settings.matcap_path == SolidViewSettings.DEFAULT_MATCAP)
 
 
 func _on_menu_pressed(id: int) -> void:
-	match id as Item:
+	match id:
 		Item.STUDIO:
 			_settings.shading = SolidViewEffect.Shading.STUDIO
 		Item.MATCAP:
@@ -149,7 +149,7 @@ func _on_menu_pressed(id: int) -> void:
 			_choose_matcap()
 			return
 		Item.DEFAULT_MATCAP:
-			_settings.matcap_path = Settings.DEFAULT_MATCAP
+			_settings.matcap_path = SolidViewSettings.DEFAULT_MATCAP
 			_settings.shading = SolidViewEffect.Shading.MATCAP
 	_settings.save()
 	_apply_settings()
