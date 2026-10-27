@@ -1,0 +1,7 @@
+.godot/
+/android/
+*.tmp
+.DS_Store
+CLAUDE.md
+override.cfg
+/docs/captures/
