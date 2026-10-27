@@ -131,7 +131,7 @@ float silhouette(ivec2 uv, float dist) {
 		edge = max(edge, (q_c - q_a) - (q_b - q_c));
 		edge = max(edge, (q_c - q_b) - (q_a - q_c));
 	}
-	float threshold = ortho ? 0.01 * max(dist, 0.1) : 0.08 * q_c;
+	float threshold = ortho ? 0.005 * max(dist, 0.1) : 0.03 * q_c;
 	return clamp((edge - threshold) / threshold, 0.0, 1.0);
 }
 

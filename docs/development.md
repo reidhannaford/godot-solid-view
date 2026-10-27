@@ -4,7 +4,7 @@
 
 - `addons/solid_view/`: the addon, the only folder another project needs. `plugin.gd` builds the toolbar and shortcut; `solid_view_controller.gd` puts the mode on the four editor viewports and takes it off; `solid_view_effect.gd` is the `CompositorEffect` that drives `solid_view.glsl`; `solid_view_settings.gd` reads and writes the Editor Settings; `matcaps/` holds the bundled matcap.
 - `test/`: a scene with heavy fog, glow and coloured lights to prove the mode on, and the headless test.
-- `tools/`: `run_tests.sh`, `sync_to.sh <project>`, `capture.gd` (windowed screenshots of every mode into `docs/captures/`, gitignored) and `make_matcap.gd` (bakes `matcaps/clay.png`).
+- `tools/`: `run_tests.sh`, `sync_to.sh <project>`, `capture.sh` with `capture.gd` (windowed screenshots of every mode into `docs/captures/`, gitignored) and `make_matcap.gd` (bakes `matcaps/clay.png`).
 - `docs/`: this file and the README images.
 
 ## Conventions
@@ -23,13 +23,13 @@ tools/run_tests.sh
 
 runs `test/plugin_test.gd` with `--headless --editor` under a throwaway `HOME`: the plugin loads, the toggle is in the toolbar, and the controller takes over and restores the viewports. Expect `FAILURES 0`. Headless Godot has no RenderingDevice, so the effect itself is inert there; the shader is only exercised windowed.
 
-For the look, run the capture with a scratch `HOME` and a fixed window size:
+For the look:
 
 ```bash
-HOME=/tmp/solid_view_home "/Applications/Godot 4.7.2.app/Contents/MacOS/Godot" --editor --resolution 1600x900 --path . -s res://tools/capture.gd
+tools/capture.sh
 ```
 
-It opens `test/test_scene.tscn`, saves `docs/captures/before.png`, then one screenshot per mode, then `after.png` with the mode off again.
+It pins the editor's view of the test scene by writing the scene's edit-state file (`.godot/editor/test_scene.tscn-editstate-<md5>.cfg`, which the editor reads when it opens the scene), then runs `tools/capture.gd` in a windowed editor under a scratch `HOME` at 1600x900. That opens `test/test_scene.tscn`, saves `docs/captures/before.png`, then one screenshot per mode with cavity and outline on, `studio_plain.png` with them off, and `after.png` with the mode off again. The README images are the viewport cropped out of those (`sips -c 1560 1880 --cropOffset 240 575`, resampled to 1000 wide).
 
 After changing `solid_view.glsl`, a windowed run is also the compile check: a bad shader prints `Solid View: the compute shader failed to compile` with the GLSL error.
 
