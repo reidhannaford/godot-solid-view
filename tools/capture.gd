@@ -39,25 +39,37 @@ func _run() -> void:
 		quit(1)
 		return
 	var popup := menu.get_popup()
-	# Item ids match plugin.gd's Item enum.
+	# Item ids match plugin.gd's Item enum: 0 studio, 1 matcap, 2 flat,
+	# 3 texture, 4 cavity, 5 outline. Cavity and outline are toggles and are
+	# remembered in editor settings, so they are set to a wanted state.
 	var sequence: Array[Array] = [
-		["studio", [0, 2]],
-		["studio_texture", [3]],
-		["matcap", [1, 2]],
-		["matcap_texture", [3]],
-		["studio_plain", [0, 2, 4, 5]],
+		["studio", [0, 2], true],
+		["studio_texture", [3], true],
+		["matcap", [1, 2], true],
+		["matcap_texture", [3], true],
+		["studio_plain", [0, 2], false],
 	]
 	toggle.button_pressed = true
 	for step: Array in sequence:
 		for id: int in step[1] as Array:
 			popup.id_pressed.emit(id)
+		_set_checked(popup, 4, step[2] as bool)
+		_set_checked(popup, 5, step[2] as bool)
 		await _settle()
 		_shot(step[0] as String)
+	_set_checked(popup, 4, true)
+	_set_checked(popup, 5, true)
 	toggle.button_pressed = false
 	await _settle()
 	_shot("after")
 	print("DONE")
 	quit(0)
+
+
+## Presses a check item only if it isn't already in the wanted state.
+func _set_checked(popup: PopupMenu, id: int, wanted: bool) -> void:
+	if popup.is_item_checked(popup.get_item_index(id)) != wanted:
+		popup.id_pressed.emit(id)
 
 
 func _settle() -> void:
