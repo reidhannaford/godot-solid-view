@@ -43,9 +43,12 @@ func _enter_tree() -> void:
 	_menu.icon = EditorInterface.get_editor_theme().get_icon(&"GuiTabMenuHl", &"EditorIcons")
 	_menu.tooltip_text = "Solid View options"
 	_menu.get_popup().id_pressed.connect(_on_menu_pressed)
-	_menu.about_to_popup.connect(_refresh_menu)
+	# Ticking an option keeps the menu open, so several can be changed in one
+	# go; only "Choose MatCap…" and the like close it.
+	_menu.get_popup().hide_on_checkable_item_selection = false
 	_bar.add_child(_menu)
-	_refresh_menu()
+	_build_menu()
+	_sync_menu()
 	_update_tooltip()
 	add_control_to_container(CONTAINER_SPATIAL_EDITOR_MENU, _bar)
 	set_input_event_forwarding_always_enabled()
@@ -108,9 +111,8 @@ func _on_toggled(on: bool) -> void:
 	_controller.active = on
 
 
-func _refresh_menu() -> void:
+func _build_menu() -> void:
 	var popup := _menu.get_popup()
-	popup.clear()
 	popup.add_radio_check_item("Studio Lighting", Item.STUDIO)
 	popup.add_radio_check_item("MatCap", Item.MATCAP)
 	popup.add_separator()
@@ -122,6 +124,11 @@ func _refresh_menu() -> void:
 	popup.add_separator()
 	popup.add_item("Choose MatCap…", Item.CHOOSE_MATCAP)
 	popup.add_item("Use Bundled MatCap", Item.DEFAULT_MATCAP)
+
+
+## Shows the current settings on the menu items; the menu may be open.
+func _sync_menu() -> void:
+	var popup := _menu.get_popup()
 	popup.set_item_checked(popup.get_item_index(Item.STUDIO), _settings.shading == SolidViewEffect.Shading.STUDIO)
 	popup.set_item_checked(popup.get_item_index(Item.MATCAP), _settings.shading == SolidViewEffect.Shading.MATCAP)
 	popup.set_item_checked(popup.get_item_index(Item.FLAT), not _settings.texture_color)
@@ -153,6 +160,7 @@ func _on_menu_pressed(id: int) -> void:
 			_settings.shading = SolidViewEffect.Shading.MATCAP
 	_settings.save()
 	_apply_settings()
+	_sync_menu()
 	_update_tooltip()
 
 
@@ -174,6 +182,7 @@ func _on_matcap_chosen(path: String) -> void:
 	_settings.shading = SolidViewEffect.Shading.MATCAP
 	_settings.save()
 	_apply_settings()
+	_sync_menu()
 	_update_tooltip()
 
 
