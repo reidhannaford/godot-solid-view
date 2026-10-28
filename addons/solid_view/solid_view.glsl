@@ -17,8 +17,8 @@ layout(set = 4, binding = 0) uniform sampler2D xray_texture;
 
 layout(push_constant, std430) uniform Params {
 	vec2 raster_size;
-	float z_near;
-	float z_far;
+	float proj_z_z; // The projection matrix's z.z entry.
+	float proj_w_z; // Its w.z entry.
 	vec4 base_color; // Linear rgb; a unused.
 	float shading; // 0 studio lighting, 1 matcap.
 	float texture_color; // 1 multiplies by the colour buffer (the albedo, when the viewport draws unshaded).
@@ -45,16 +45,16 @@ float raw_depth(ivec2 uv) {
 	return texelFetch(depth_texture, clamp_uv(uv), 0).r;
 }
 
-// Distance along the view axis. Godot's RenderingDevice renderers keep a
-// reversed depth buffer: 1.0 at the near plane, 0.0 at the far plane.
+// Distance along the view axis, by inverting the projection's own depth row.
+// Godot's RenderingDevice projections are reversed-Z, 1.0 at the near plane
+// and 0.0 at the far plane, and Projection.get_z_near() / get_z_far() don't
+// recover the planes from one, so the two matrix entries are passed instead:
+// perspective depth = w.z / d - z.z, orthographic depth = w.z - z.z * d.
 float view_distance(float depth) {
-	float n = params.z_near;
-	float f = params.z_far;
-	float z_ndc = 1.0 - 2.0 * depth;
 	if (params.orthographic > 0.5) {
-		return (z_ndc * (f - n) + (f + n)) * 0.5;
+		return (params.proj_w_z - depth) / params.proj_z_z;
 	}
-	return 2.0 * f * n / ((f + n) - (f - n) * z_ndc);
+	return params.proj_w_z / (depth + params.proj_z_z);
 }
 
 // The depth buffer is cleared to 0 where nothing was drawn: sky, or a
@@ -130,7 +130,7 @@ int outline_width() {
 float depth_measure(float depth) {
 	bool ortho = params.orthographic > 0.5;
 	if (!has_geometry(depth)) {
-		return ortho ? -params.z_far : 0.0;
+		return ortho ? -(params.proj_w_z / params.proj_z_z) : 0.0;
 	}
 	float dist = view_distance(depth);
 	return ortho ? -dist : 1.0 / dist;

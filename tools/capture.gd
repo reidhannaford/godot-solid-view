@@ -65,11 +65,31 @@ func _run() -> void:
 	await _settle()
 	_shot("studio_xray")
 	_set_checked(popup, 8, false)
+	_set_view_item("Orthogonal")
+	await _settle()
+	_shot("studio_ortho")
+	_set_view_item("Perspective")
+	await _settle()
 	toggle.button_pressed = false
 	await _settle()
 	_shot("after")
 	print("DONE")
 	quit(0)
+
+
+## Picks an item of the first editor viewport's view menu by its text, the
+## way a click would.
+func _set_view_item(text: String) -> void:
+	var viewport := EditorInterface.get_editor_viewport_3d(0)
+	var editor_viewport := viewport.get_parent().get_parent()
+	for child: Node in editor_viewport.find_children("*", "MenuButton", true, false):
+		var menu := child as MenuButton
+		var view_popup := menu.get_popup()
+		for index: int in view_popup.item_count:
+			if view_popup.get_item_text(index) == text:
+				view_popup.id_pressed.emit(view_popup.get_item_id(index))
+				return
+	print("FAIL: view menu item %s not found" % text)
 
 
 ## Presses a check item only if it isn't already in the wanted state.

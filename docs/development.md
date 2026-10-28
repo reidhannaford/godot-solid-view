@@ -29,7 +29,7 @@ For the look:
 tools/capture.sh
 ```
 
-It pins the editor's view of the test scene by writing the scene's edit-state file (`.godot/editor/test_scene.tscn-editstate-<md5>.cfg`, which the editor reads when it opens the scene), then runs `tools/capture.gd` in a windowed editor under a scratch `HOME` at 1600x900. That opens `test/test_scene.tscn`, saves `docs/captures/before.png`, then one screenshot per mode with cavity and outline on, `studio_plain.png` with them off, `studio_xray.png` with x-ray on, and `after.png` with the mode off again. The README images are the viewport cropped out of those (`sips -c 1560 1880 --cropOffset 240 575`, resampled to 1000 wide).
+It pins the editor's view of the test scene by writing the scene's edit-state file (`.godot/editor/test_scene.tscn-editstate-<md5>.cfg`, which the editor reads when it opens the scene), then runs `tools/capture.gd` in a windowed editor under a scratch `HOME` at 1600x900. That opens `test/test_scene.tscn`, saves `docs/captures/before.png`, then one screenshot per mode with cavity and outline on, `studio_plain.png` with them off, `studio_xray.png` with x-ray on, `studio_ortho.png` in the orthographic view, and `after.png` with the mode off again. The README images are the viewport cropped out of those (`sips -c 1560 1880 --cropOffset 240 575`, resampled to 1000 wide).
 
 After changing `solid_view.glsl`, a windowed run is also the compile check: a bad shader prints `Solid View: the compute shader failed to compile` with the GLSL error.
 
@@ -44,6 +44,7 @@ After changing `solid_view.glsl`, a windowed run is also the compile check: a ba
 - X-ray rests on three editor facts, all checked in the 4.7.2 source: the Overdraw debug draw replaces every material with `blend_add, unshaded`, ALBEDO (0.4, 0.8, 0.8) and ALPHA 0.1 on a black clear, so each surface adds 0.08 of green and the layer count is `g / 0.08`; the editor cameras cull the game's 20 layers plus their own gizmo, grid and tool layers at bits 24 to 30, which the x-ray camera masks out; and the RenderingServer draws child viewports before their parents, so a SubViewport added under the editor's viewport is current in the same frame. The hidden viewport renders in HDR (`use_hdr_2d`) so its texture is linear and read as stored.
 - The overdraw material override only exists in builds with `DEBUG_ENABLED`, which every editor build is.
 - Lines are drawn in pixels of the internal render buffer. The setting is in points: the plugin multiplies it by `EditorInterface.get_editor_scale()` (2 on a 2x display) and the effect by internal size over target size, so a 3D render scale below 1 doesn't thin them. The silhouette and crease tests look up to `outline_width` pixels along +x and +y (and -x, -y for the silhouette) so the line lands on one side of an edge at that width.
+- `RenderSceneData.get_cam_projection()` is the reversed-Z render projection, and `Projection.get_z_near()` / `get_z_far()` return -0.05 and 0.05 for it. The effect passes the matrix's `z.z` and `w.z` entries and the shader inverts the depth row itself: perspective `depth = w.z / d - z.z`, orthographic `depth = w.z - z.z * d`. The capture's `studio_ortho.png` checks the orthographic branch; it switches the view through the viewport's own view menu, since an `orthogonal` flag in the edit-state file is not honoured.
 
 ## Releasing
 

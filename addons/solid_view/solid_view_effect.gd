@@ -91,8 +91,10 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData) ->
 	push_constant.resize(PUSH_CONSTANT_FLOATS)
 	push_constant[0] = size.x
 	push_constant[1] = size.y
-	push_constant[2] = projection.get_z_near()
-	push_constant[3] = projection.get_z_far()
+	# The reversed-Z render projection; its planes can't be read back with
+	# get_z_near() / get_z_far(), so the shader inverts these entries itself.
+	push_constant[2] = projection.z.z
+	push_constant[3] = projection.w.z
 	push_constant[4] = base_color.r
 	push_constant[5] = base_color.g
 	push_constant[6] = base_color.b

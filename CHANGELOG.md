@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: the outline, crease and cavity tests worked from wrong distances. The projection the effect receives is Godot's reversed-Z render matrix, and `Projection.get_z_near()` / `get_z_far()` return nonsense for it (-0.05 and 0.05), which squashed every depth to about the same value. The silhouette only ever fired against the sky or on very close objects, which the small test scene hid. Distances now come from the matrix's own depth entries, in perspective and orthographic views.
 - **Crease Lines** option: with Outline on, a line along creases sharper than 45 degrees within a surface, so a box's corner edges get lines, not only its silhouette.
 - **Outline width** setting (`solid_view/outline_width`, in points), scaled to the display and to the 3D render scale, so the outline is no longer a single device pixel on a 2x display. X-ray's hidden-silhouette lines follow the same width.
 - Edits in Editor Settings > Solid View apply at once instead of at the next editor start.
