@@ -8,7 +8,7 @@ A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender
 | **Solid, matcap** | **Solid, studio with texture colour** |
 | ![The same view shaded by the bundled clay matcap](docs/images/matcap.png) | ![The same view with each surface's own albedo](docs/images/studio_texture.png) |
 
-**Status: 1.0.1.** Forward+ only. In daily use on one game project. Issues and pull requests are welcome; please say which Godot version and platform you're on.
+**Status: 1.0.2.** Forward+ only. In daily use on one game project. Issues and pull requests are welcome; please say which Godot version and platform you're on.
 
 ## What it does
 

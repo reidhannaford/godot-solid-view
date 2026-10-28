@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.2, 2026-10-27
 
 - Fixed: a scene saved while Solid was on reopened with the editor's View Environment off and a grey background. The addon now only puts its environment, compositor and debug draw on the editor cameras while a frame is being drawn, so the editor's own view state is what gets saved. Scenes already affected: tick View Environment in the viewport's View menu once and save.
 
