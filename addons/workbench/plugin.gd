@@ -1,22 +1,22 @@
 @tool
 extends EditorPlugin
-## Adds a Solid toggle and its options menu to the 3D editor toolbar, and a
-## shortcut (solid_view/toggle, Alt+Z by default) to flip it, and another
-## (solid_view/toggle_xray, Alt+Shift+Z) for x-ray.
+## Adds a Workbench toggle and its options menu to the 3D editor toolbar, and a
+## shortcut (workbench/toggle, Alt+Z by default) to flip it, and another
+## (workbench/toggle_xray, Alt+Shift+Z) for x-ray.
 
-const SolidViewController := preload("solid_view_controller.gd")
-const SolidViewSettings := preload("solid_view_settings.gd")
-const SolidViewEffect := preload("solid_view_effect.gd")
+const WorkbenchController := preload("workbench_controller.gd")
+const WorkbenchSettings := preload("workbench_settings.gd")
+const WorkbenchEffect := preload("workbench_effect.gd")
 
-const SHORTCUT_PATH := "solid_view/toggle"
-const XRAY_SHORTCUT_PATH := "solid_view/toggle_xray"
+const SHORTCUT_PATH := "workbench/toggle"
+const XRAY_SHORTCUT_PATH := "workbench/toggle_xray"
 
 enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, XRAY, CREASE }
 ## Ids of the bundled matcaps in their submenu: this plus their index.
 const MATCAP_ID_BASE := 100
 
-var _controller: SolidViewController
-var _settings: SolidViewSettings
+var _controller: WorkbenchController
+var _settings: WorkbenchSettings
 var _bar: HBoxContainer
 var _toggle: Button
 var _menu: MenuButton
@@ -26,15 +26,15 @@ var _file_dialog: EditorFileDialog
 
 func _enter_tree() -> void:
 	_register_shortcuts()
-	_settings = SolidViewSettings.new()
+	_settings = WorkbenchSettings.new()
 	_settings.load()
-	_controller = SolidViewController.new()
+	_controller = WorkbenchController.new()
 	_apply_settings()
 
 	_bar = HBoxContainer.new()
 	_toggle = Button.new()
-	_toggle.name = "SolidViewToggle"
-	_toggle.text = "Solid"
+	_toggle.name = "WorkbenchToggle"
+	_toggle.text = "Workbench"
 	_toggle.toggle_mode = true
 	_toggle.flat = true
 	_toggle.focus_mode = Control.FOCUS_NONE
@@ -42,11 +42,11 @@ func _enter_tree() -> void:
 	_toggle.toggled.connect(_on_toggled)
 	_bar.add_child(_toggle)
 	_menu = MenuButton.new()
-	_menu.name = "SolidViewMenu"
+	_menu.name = "WorkbenchMenu"
 	_menu.flat = true
 	_menu.focus_mode = Control.FOCUS_NONE
 	_menu.icon = EditorInterface.get_editor_theme().get_icon(&"GuiTabMenuHl", &"EditorIcons")
-	_menu.tooltip_text = "Solid View options"
+	_menu.tooltip_text = "Workbench options"
 	_menu.get_popup().id_pressed.connect(_on_menu_pressed)
 	# Ticking an option keeps the menu open, so several can be changed in one
 	# go; only "Choose MatCap…" and the like close it.
@@ -57,7 +57,7 @@ func _enter_tree() -> void:
 	_update_tooltip()
 	add_control_to_container(CONTAINER_SPATIAL_EDITOR_MENU, _bar)
 	set_input_event_forwarding_always_enabled()
-	# Editor Settings > Solid View edits (the outline width, the x-ray
+	# Editor Settings > Workbench edits (the outline width, the x-ray
 	# opacity) take effect at once.
 	EditorInterface.get_editor_settings().settings_changed.connect(_on_settings_changed)
 
@@ -97,8 +97,8 @@ func _forward_3d_gui_input(_viewport_camera: Camera3D, event: InputEvent) -> int
 
 
 func _register_shortcuts() -> void:
-	_register_shortcut(SHORTCUT_PATH, "Toggle Solid View", false)
-	_register_shortcut(XRAY_SHORTCUT_PATH, "Toggle Solid View X-Ray", true)
+	_register_shortcut(SHORTCUT_PATH, "Toggle Workbench", false)
+	_register_shortcut(XRAY_SHORTCUT_PATH, "Toggle Workbench X-Ray", true)
 
 
 func _register_shortcut(path: String, label: String, shift: bool) -> void:
@@ -117,7 +117,7 @@ func _register_shortcut(path: String, label: String, shift: bool) -> void:
 
 func _apply_settings() -> void:
 	var effect := _controller.effect
-	effect.shading = _settings.shading as SolidViewEffect.Shading
+	effect.shading = _settings.shading as WorkbenchEffect.Shading
 	effect.cavity = 1.0 if _settings.cavity else 0.0
 	effect.outline = 1.0 if _settings.outline else 0.0
 	# The width is in points; the viewport has editor-scale pixels per point.
@@ -157,10 +157,10 @@ func _build_menu() -> void:
 	popup.add_check_item("X-Ray", Item.XRAY)
 	popup.add_separator()
 	_matcap_menu = PopupMenu.new()
-	_matcap_menu.name = "SolidViewMatcaps"
+	_matcap_menu.name = "WorkbenchMatcaps"
 	_matcap_menu.hide_on_checkable_item_selection = false
 	var index := 0
-	for label: String in SolidViewSettings.BUNDLED_MATCAPS:
+	for label: String in WorkbenchSettings.BUNDLED_MATCAPS:
 		_matcap_menu.add_radio_check_item(label, MATCAP_ID_BASE + index)
 		index += 1
 	_matcap_menu.id_pressed.connect(_on_matcap_menu_pressed)
@@ -171,8 +171,8 @@ func _build_menu() -> void:
 ## Shows the current settings on the menu items; the menu may be open.
 func _sync_menu() -> void:
 	var popup := _menu.get_popup()
-	popup.set_item_checked(popup.get_item_index(Item.STUDIO), _settings.shading == SolidViewEffect.Shading.STUDIO)
-	popup.set_item_checked(popup.get_item_index(Item.MATCAP), _settings.shading == SolidViewEffect.Shading.MATCAP)
+	popup.set_item_checked(popup.get_item_index(Item.STUDIO), _settings.shading == WorkbenchEffect.Shading.STUDIO)
+	popup.set_item_checked(popup.get_item_index(Item.MATCAP), _settings.shading == WorkbenchEffect.Shading.MATCAP)
 	popup.set_item_checked(popup.get_item_index(Item.FLAT), not _settings.texture_color)
 	popup.set_item_checked(popup.get_item_index(Item.TEXTURE), _settings.texture_color)
 	popup.set_item_checked(popup.get_item_index(Item.CAVITY), _settings.cavity)
@@ -181,17 +181,17 @@ func _sync_menu() -> void:
 	popup.set_item_disabled(popup.get_item_index(Item.CREASE), not _settings.outline)
 	popup.set_item_checked(popup.get_item_index(Item.XRAY), _settings.xray)
 	var index := 0
-	for label: String in SolidViewSettings.BUNDLED_MATCAPS:
-		_matcap_menu.set_item_checked(_matcap_menu.get_item_index(MATCAP_ID_BASE + index), _settings.matcap_path == SolidViewSettings.BUNDLED_MATCAPS[label])
+	for label: String in WorkbenchSettings.BUNDLED_MATCAPS:
+		_matcap_menu.set_item_checked(_matcap_menu.get_item_index(MATCAP_ID_BASE + index), _settings.matcap_path == WorkbenchSettings.BUNDLED_MATCAPS[label])
 		index += 1
 
 
 func _on_menu_pressed(id: int) -> void:
 	match id:
 		Item.STUDIO:
-			_settings.shading = SolidViewEffect.Shading.STUDIO
+			_settings.shading = WorkbenchEffect.Shading.STUDIO
 		Item.MATCAP:
-			_settings.shading = SolidViewEffect.Shading.MATCAP
+			_settings.shading = WorkbenchEffect.Shading.MATCAP
 		Item.FLAT:
 			_settings.texture_color = false
 		Item.TEXTURE:
@@ -214,12 +214,12 @@ func _on_menu_pressed(id: int) -> void:
 
 
 func _on_matcap_menu_pressed(id: int) -> void:
-	var labels := SolidViewSettings.BUNDLED_MATCAPS.keys()
+	var labels := WorkbenchSettings.BUNDLED_MATCAPS.keys()
 	var index := id - MATCAP_ID_BASE
 	if index < 0 or index >= labels.size():
 		return
-	_settings.matcap_path = SolidViewSettings.BUNDLED_MATCAPS[labels[index] as String]
-	_settings.shading = SolidViewEffect.Shading.MATCAP
+	_settings.matcap_path = WorkbenchSettings.BUNDLED_MATCAPS[labels[index] as String]
+	_settings.shading = WorkbenchEffect.Shading.MATCAP
 	_settings.save()
 	_apply_settings()
 	_sync_menu()
@@ -241,7 +241,7 @@ func _choose_matcap() -> void:
 
 func _on_matcap_chosen(path: String) -> void:
 	_settings.matcap_path = path
-	_settings.shading = SolidViewEffect.Shading.MATCAP
+	_settings.shading = WorkbenchEffect.Shading.MATCAP
 	_settings.save()
 	_apply_settings()
 	_sync_menu()
@@ -253,8 +253,8 @@ func _update_tooltip() -> void:
 	var settings := EditorInterface.get_editor_settings()
 	if settings.has_shortcut(SHORTCUT_PATH):
 		shortcut_text = " (%s)" % settings.get_shortcut(SHORTCUT_PATH).get_as_text()
-	var mode := "MatCap: %s" % _settings.matcap_path.get_file() if _settings.shading == SolidViewEffect.Shading.MATCAP else "Studio lighting"
+	var mode := "MatCap: %s" % _settings.matcap_path.get_file() if _settings.shading == WorkbenchEffect.Shading.MATCAP else "Studio lighting"
 	var xray_text := ""
 	if settings.has_shortcut(XRAY_SHORTCUT_PATH):
 		xray_text = "\nX-ray: %s (%s)." % ["on" if _settings.xray else "off", settings.get_shortcut(XRAY_SHORTCUT_PATH).get_as_text()]
-	_toggle.tooltip_text = "Solid View%s\n%s, %s colour.%s" % [shortcut_text, mode, "texture" if _settings.texture_color else "flat", xray_text]
+	_toggle.tooltip_text = "Workbench%s\n%s, %s colour.%s" % [shortcut_text, mode, "texture" if _settings.texture_color else "flat", xray_text]

@@ -10,4 +10,4 @@ trap 'rm -rf "$home"' EXIT
 
 HOME="$home" "$godot" --headless --import --path "$here" >/dev/null 2>&1
 HOME="$home" "$godot" --editor --resolution 1600x900 --path "$here" -s res://tools/capture.gd 2>&1 \
-	| grep -E "^shot|^view|^DONE|^FAIL|WATCHDOG|Solid View|SCRIPT ERROR" || true
+	| grep -E "^shot|^view|^DONE|^FAIL|WATCHDOG|Workbench|SCRIPT ERROR" || true

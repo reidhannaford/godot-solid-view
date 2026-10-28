@@ -1,6 +1,7 @@
 * text=auto eol=lf
 *.png binary
 *.exr binary
+*.webp binary
 
 # Release archives (the GitHub zip the Asset Library installs) hold only the
 # addon, the README, the licence and the changelog.

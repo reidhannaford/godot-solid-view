@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://16o61bjt62d"
-path="res://.godot/imported/wax.png-7e9392e96b8accea3d0f44f3f6b7a0a8.ctex"
+uid="uid://74wjgpvof2ta"
+path="res://.godot/imported/clay.png-53253c2c274da9a94217f3347c2360f9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/solid_view/matcaps/wax.png"
-dest_files=["res://.godot/imported/wax.png-7e9392e96b8accea3d0f44f3f6b7a0a8.ctex"]
+source_file="res://addons/workbench/matcaps/clay.png"
+dest_files=["res://.godot/imported/clay.png-53253c2c274da9a94217f3347c2360f9.ctex"]
 
 [params]
 

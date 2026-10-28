@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dnje1815bbvbs"
-path="res://.godot/imported/clay.png-d7207b43cbbcd8b87c597442b324239b.ctex"
+uid="uid://chh336n6rdm3j"
+path="res://.godot/imported/contrast.png-2ad2657e6c5d8e3f2d2ae5983ed9c378.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/solid_view/matcaps/clay.png"
-dest_files=["res://.godot/imported/clay.png-d7207b43cbbcd8b87c597442b324239b.ctex"]
+source_file="res://addons/workbench/matcaps/contrast.png"
+dest_files=["res://.godot/imported/contrast.png-2ad2657e6c5d8e3f2d2ae5983ed9c378.ctex"]
 
 [params]
 

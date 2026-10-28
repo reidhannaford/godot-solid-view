@@ -1,6 +1,6 @@
 @tool
 extends RefCounted
-## Puts Solid View on the editor's 3D viewports and takes it off again.
+## Puts Workbench on the editor's 3D viewports and takes it off again.
 ##
 ## While active, each editor camera draws with a neutral environment (a flat
 ## background, no fog, glow, ambient or tonemapping), neutral camera
@@ -27,17 +27,17 @@ extends RefCounted
 ## its parent in the same frame, so the count of surfaces under each pixel is
 ## current when the effect blends it in.
 
-const SolidViewEffect := preload("solid_view_effect.gd")
+const WorkbenchEffect := preload("workbench_effect.gd")
 const VIEWPORT_COUNT := 4
 ## Blender's default viewport grey, as a display colour.
 const BACKGROUND := Color(0.24, 0.24, 0.24)
 ## The editor cameras see the game's 20 render layers plus their own gizmo,
 ## grid and tool layers above; the x-ray camera only wants the game's.
 const GAME_LAYERS := (1 << 20) - 1
-const XRAY_VIEWPORT_NAME := "SolidViewXray"
+const XRAY_VIEWPORT_NAME := "WorkbenchXray"
 
 ## The options, read by every viewport's own effect before each draw.
-var effect: SolidViewEffect
+var effect: WorkbenchEffect
 var environment: Environment
 var attributes: CameraAttributesPractical
 var active: bool = false:
@@ -68,7 +68,7 @@ var _drawing: bool = false
 
 
 func _init() -> void:
-	effect = SolidViewEffect.new()
+	effect = WorkbenchEffect.new()
 	effect.background_color = BACKGROUND
 	environment = Environment.new()
 	environment.background_mode = Environment.BG_COLOR
@@ -84,7 +84,7 @@ func _notification(what: int) -> void:
 		_restore()
 
 
-## Puts the solid view state on every editor viewport for the draw that
+## Puts the workbench state on every editor viewport for the draw that
 ## follows. Connected to [signal RenderingServer.frame_pre_draw] while active.
 func before_draw() -> void:
 	if not active or _drawing:
@@ -95,7 +95,7 @@ func before_draw() -> void:
 		var viewport := entry["viewport"] as SubViewport
 		if not is_instance_valid(camera) or not is_instance_valid(viewport):
 			continue
-		var own_effect := entry["effect"] as SolidViewEffect
+		var own_effect := entry["effect"] as WorkbenchEffect
 		_copy_options(own_effect)
 		if xray:
 			_ensure_xray(entry)
@@ -147,7 +147,7 @@ func _take() -> void:
 		var camera := viewport.get_camera_3d()
 		if camera == null:
 			continue
-		var own_effect := SolidViewEffect.new()
+		var own_effect := WorkbenchEffect.new()
 		var own_compositor := Compositor.new()
 		own_compositor.compositor_effects = [own_effect]
 		_entries.append({
@@ -178,7 +178,7 @@ func _restore() -> void:
 	_entries.clear()
 
 
-func _copy_options(own_effect: SolidViewEffect) -> void:
+func _copy_options(own_effect: WorkbenchEffect) -> void:
 	own_effect.shading = effect.shading
 	own_effect.texture_color = effect.texture_color
 	own_effect.base_color = effect.base_color

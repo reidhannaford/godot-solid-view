@@ -10,6 +10,10 @@ if [[ ! -f "$target/project.godot" ]]; then
 fi
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
-mkdir -p "$target/addons/solid_view"
-rsync -a --delete "$here/addons/solid_view/" "$target/addons/solid_view/"
-echo "Synced addons/solid_view into $target"
+if [ -d "$target/addons/solid_view" ]; then
+	rm -rf "$target/addons/solid_view"
+	echo "Removed the old addons/solid_view from $target; enable Workbench under Project Settings > Plugins"
+fi
+mkdir -p "$target/addons/workbench"
+rsync -a --delete "$here/addons/workbench/" "$target/addons/workbench/"
+echo "Synced addons/workbench into $target"

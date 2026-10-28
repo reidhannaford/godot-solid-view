@@ -1,7 +1,7 @@
 #[compute]
 #version 450
 
-// Solid View: after the opaque pass, every pixel that has geometry is
+// Workbench: after the opaque pass, every pixel that has geometry is
 // re-shaded from the depth and normal buffers alone, the way Blender's Solid
 // mode does. The scene's lights, materials, fog and post-processing never
 // reach it. Runs before the sky and the transparent pass, so the editor's

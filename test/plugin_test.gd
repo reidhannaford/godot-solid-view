@@ -4,8 +4,8 @@ extends SceneTree
 ## and restores them.
 ## Run: godot --headless --editor --path . -s res://test/plugin_test.gd
 
-const SolidViewController := preload("res://addons/solid_view/solid_view_controller.gd")
-const SolidViewSettings := preload("res://addons/solid_view/solid_view_settings.gd")
+const WorkbenchController := preload("res://addons/workbench/workbench_controller.gd")
+const WorkbenchSettings := preload("res://addons/workbench/workbench_settings.gd")
 
 var _failures: int = 0
 
@@ -31,7 +31,7 @@ func _run() -> void:
 	var debug_draw_before := viewport.debug_draw
 	var children_before := viewport.get_child_count()
 
-	var controller := SolidViewController.new()
+	var controller := WorkbenchController.new()
 	controller.active = true
 	_check(viewport.msaa_3d == Viewport.MSAA_DISABLED, "MSAA is off while active")
 	_check(camera.environment == env_before, "between frames the camera keeps the editor's environment")
@@ -61,7 +61,7 @@ func _run() -> void:
 
 	controller.xray = true
 	controller.before_draw()
-	var ghost := viewport.find_child(SolidViewController.XRAY_VIEWPORT_NAME, false, false) as SubViewport
+	var ghost := viewport.find_child(WorkbenchController.XRAY_VIEWPORT_NAME, false, false) as SubViewport
 	_check(ghost != null, "x-ray adds a hidden viewport under the editor viewport")
 	if ghost != null:
 		_check(ghost.debug_draw == Viewport.DEBUG_DRAW_OVERDRAW, "the hidden viewport draws overdraw")
@@ -70,7 +70,7 @@ func _run() -> void:
 		_check(ghost_camera != null, "the hidden viewport has a camera")
 		if ghost_camera != null:
 			_check(ghost_camera.global_transform.is_equal_approx(camera.global_transform), "the hidden camera copies the editor camera")
-			_check(ghost_camera.cull_mask & ~SolidViewController.GAME_LAYERS == 0, "the hidden camera leaves out the gizmo layers")
+			_check(ghost_camera.cull_mask & ~WorkbenchController.GAME_LAYERS == 0, "the hidden camera leaves out the gizmo layers")
 			_check(ghost_camera.environment == controller.environment, "the hidden camera has the neutral environment")
 		var own_effect := camera.compositor.compositor_effects[0]
 		_check(own_effect.xray > 0.0, "the effect gets the x-ray opacity")
@@ -92,26 +92,26 @@ func _run() -> void:
 	await process_frame
 	_check(viewport.get_child_count() == children_before, "the editor viewport has no leftover children")
 
-	var toggle := EditorInterface.get_base_control().find_child("SolidViewToggle", true, false) as Button
-	_check(toggle != null, "the Solid toggle is in the 3D toolbar")
+	var toggle := EditorInterface.get_base_control().find_child("WorkbenchToggle", true, false) as Button
+	_check(toggle != null, "the Workbench toggle is in the 3D toolbar")
 	if toggle != null:
 		toggle.button_pressed = true
 		await process_frame
-		_check(viewport.msaa_3d == Viewport.MSAA_DISABLED, "the toggle turns solid view on")
+		_check(viewport.msaa_3d == Viewport.MSAA_DISABLED, "the toggle turns workbench on")
 		_check(camera.environment == env_before, "the toggle leaves the editor's environment alone between frames")
 		toggle.button_pressed = false
 		await process_frame
 		_check(viewport.msaa_3d == msaa_before, "the toggle turns it off again")
 
-	for label: String in SolidViewSettings.BUNDLED_MATCAPS:
-		var path: String = SolidViewSettings.BUNDLED_MATCAPS[label]
+	for label: String in WorkbenchSettings.BUNDLED_MATCAPS:
+		var path: String = WorkbenchSettings.BUNDLED_MATCAPS[label]
 		_check(ResourceLoader.exists(path), "bundled matcap %s exists at %s" % [label, path])
-	var matcap_menu := EditorInterface.get_base_control().find_child("SolidViewMatcaps", true, false) as PopupMenu
-	_check(matcap_menu != null and matcap_menu.item_count == SolidViewSettings.BUNDLED_MATCAPS.size(), "the Bundled MatCaps submenu lists every bundled matcap")
+	var matcap_menu := EditorInterface.get_base_control().find_child("WorkbenchMatcaps", true, false) as PopupMenu
+	_check(matcap_menu != null and matcap_menu.item_count == WorkbenchSettings.BUNDLED_MATCAPS.size(), "the Bundled MatCaps submenu lists every bundled matcap")
 
 	var settings := EditorInterface.get_editor_settings()
-	_check(settings.has_shortcut("solid_view/toggle"), "the shortcut is registered")
-	_check(settings.has_shortcut("solid_view/toggle_xray"), "the x-ray shortcut is registered")
+	_check(settings.has_shortcut("workbench/toggle"), "the shortcut is registered")
+	_check(settings.has_shortcut("workbench/toggle_xray"), "the x-ray shortcut is registered")
 
 	print("FAILURES %d" % _failures)
 	quit(0 if _failures == 0 else 1)

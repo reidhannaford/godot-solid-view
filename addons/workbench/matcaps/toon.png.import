@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c7o44617jpxu8"
-path="res://.godot/imported/contrast.png-885112ed0c7d0b6438c4575cc7646e4b.ctex"
+uid="uid://cfotbf5qcutg5"
+path="res://.godot/imported/toon.png-4a1c740f06d23765f335848fdcf46f54.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/solid_view/matcaps/contrast.png"
-dest_files=["res://.godot/imported/contrast.png-885112ed0c7d0b6438c4575cc7646e4b.ctex"]
+source_file="res://addons/workbench/matcaps/toon.png"
+dest_files=["res://.godot/imported/toon.png-4a1c740f06d23765f335848fdcf46f54.ctex"]
 
 [params]
 

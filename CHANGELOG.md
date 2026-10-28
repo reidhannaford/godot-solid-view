@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.3.0, 2026-10-28
 
+- Renamed to **Workbench**, after the Blender engine that draws its Solid mode, since the addon covers that mode's whole range: studio light, matcaps, texture colour, cavity, outlines and x-ray. The folder is `addons/workbench/`, the toolbar toggle says Workbench, the Editor Settings live under `workbench/…` and the shortcuts under `workbench/toggle` and `workbench/toggle_xray`. **Upgrading from Solid View:** delete `addons/solid_view/` (or run `tools/sync_to.sh`, which does), enable Workbench under Project Settings > Plugins, and set your options and shortcut bindings again, since the keys moved.
+- A copy of the licence and a short README ship inside the addon folder, and each release carries a ZIP of the addon, for the Asset Store.
 - README images in six panels, through the test scene's own camera: as lit, solid, texture colour, x-ray, and the normal and contrast matcaps.
 
 ## 1.2.0, 2026-10-28

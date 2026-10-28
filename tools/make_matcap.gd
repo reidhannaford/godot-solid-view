@@ -1,5 +1,5 @@
 extends SceneTree
-## Bakes the bundled matcaps into addons/solid_view/matcaps/ as 256px sRGB
+## Bakes the bundled matcaps into addons/workbench/matcaps/ as 256px sRGB
 ## PNGs. Each is a function of the view-space normal of a sphere, +X right,
 ## +Y up, +Z towards the viewer. Lit ones are shaded in linear light and
 ## converted; the stylised ones (normal, zebra) are written in display
@@ -7,7 +7,7 @@ extends SceneTree
 ## Run headless: godot --headless --path . -s res://tools/make_matcap.gd
 
 const SIZE := 256
-const DIR := "res://addons/solid_view/matcaps/"
+const DIR := "res://addons/workbench/matcaps/"
 const VIEW := Vector3(0.0, 0.0, 1.0)
 
 ## Name to shader; each returns the display colour for a normal.

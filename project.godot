@@ -10,13 +10,13 @@ config_version=5
 
 [application]
 
-config/name="Solid View"
+config/name="Workbench"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/solid_view/plugin.cfg")
+enabled=PackedStringArray("res://addons/workbench/plugin.cfg")
 
 [rendering]
 

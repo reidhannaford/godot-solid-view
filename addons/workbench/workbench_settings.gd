@@ -1,11 +1,11 @@
 @tool
 extends RefCounted
-## The solid view options, kept in Editor Settings under solid_view/ so they
+## The workbench options, kept in Editor Settings under workbench/ so they
 ## follow the user between projects. Whether the view is on is not saved: it
 ## starts off, like a debug draw mode.
 
-const PREFIX := "solid_view/"
-const MATCAP_DIR := "res://addons/solid_view/matcaps/"
+const PREFIX := "workbench/"
+const MATCAP_DIR := "res://addons/workbench/matcaps/"
 const DEFAULT_MATCAP := MATCAP_DIR + "clay.png"
 ## The matcaps that ship with the addon, by menu label, in menu order.
 const BUNDLED_MATCAPS: Dictionary[String, String] = {
@@ -18,7 +18,7 @@ const BUNDLED_MATCAPS: Dictionary[String, String] = {
 	"Chrome": MATCAP_DIR + "chrome.png",
 }
 
-var shading: int = 0 # SolidViewEffect.Shading
+var shading: int = 0 # WorkbenchEffect.Shading
 var texture_color: bool = false
 var cavity: bool = true
 var outline: bool = true
@@ -61,7 +61,7 @@ func load_matcap() -> Texture2D:
 	if ResourceLoader.exists(matcap_path):
 		texture = ResourceLoader.load(matcap_path, "Texture2D") as Texture2D
 	if texture == null and matcap_path != DEFAULT_MATCAP:
-		push_warning("Solid View: can't load the matcap at %s; using the bundled one." % matcap_path)
+		push_warning("Workbench: can't load the matcap at %s; using the bundled one." % matcap_path)
 		texture = ResourceLoader.load(DEFAULT_MATCAP, "Texture2D") as Texture2D
 	return texture
 

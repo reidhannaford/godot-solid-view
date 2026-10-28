@@ -9,7 +9,7 @@ extends CompositorEffect
 
 enum Shading { STUDIO, MATCAP }
 
-const SHADER_FILE_NAME := "solid_view.glsl"
+const SHADER_FILE_NAME := "workbench.glsl"
 const WORKGROUP := 8
 const PUSH_CONSTANT_FLOATS := 20
 
@@ -57,7 +57,7 @@ func _init() -> void:
 	var path := (get_script() as Script).resource_path.get_base_dir().path_join(SHADER_FILE_NAME)
 	_shader_file = ResourceLoader.load(path, "RDShaderFile") as RDShaderFile
 	if _shader_file == null:
-		push_error("Solid View: can't load the compute shader at %s." % path)
+		push_error("Workbench: can't load the compute shader at %s." % path)
 		_failed = true
 
 
@@ -145,17 +145,17 @@ func _ensure_pipeline() -> bool:
 		return false
 	var spirv := _shader_file.get_spirv()
 	if spirv == null or spirv.compile_error_compute != "":
-		push_error("Solid View: the compute shader failed to compile: %s" % (spirv.compile_error_compute if spirv != null else "no SPIR-V"))
+		push_error("Workbench: the compute shader failed to compile: %s" % (spirv.compile_error_compute if spirv != null else "no SPIR-V"))
 		_failed = true
 		return false
 	_shader = _rd.shader_create_from_spirv(spirv)
 	if not _shader.is_valid():
-		push_error("Solid View: could not create the compute shader.")
+		push_error("Workbench: could not create the compute shader.")
 		_failed = true
 		return false
 	_pipeline = _rd.compute_pipeline_create(_shader)
 	if not _pipeline.is_valid():
-		push_error("Solid View: could not create the compute pipeline.")
+		push_error("Workbench: could not create the compute pipeline.")
 		_failed = true
 		return false
 

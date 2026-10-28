@@ -1,6 +1,6 @@
 extends SceneTree
 ## Opens the test scene in a windowed editor, looking through the scene's own
-## Camera3D, and saves screenshots of the viewport with solid view off and in
+## Camera3D, and saves screenshots of the viewport with workbench off and in
 ## each mode, into docs/captures/.
 ## Run: godot --editor --resolution 1600x900 --path . -s res://tools/capture.gd
 
@@ -41,8 +41,8 @@ func _run() -> void:
 	_shot("before")
 
 	var base := EditorInterface.get_base_control()
-	var toggle := base.find_child("SolidViewToggle", true, false) as Button
-	var menu := base.find_child("SolidViewMenu", true, false) as MenuButton
+	var toggle := base.find_child("WorkbenchToggle", true, false) as Button
+	var menu := base.find_child("WorkbenchMenu", true, false) as MenuButton
 	if toggle == null or menu == null:
 		print("FAIL: toolbar controls not found")
 		quit(1)
@@ -161,7 +161,7 @@ func _pin_view_to_camera() -> bool:
 
 ## Picks a bundled matcap by its label in the Bundled MatCaps submenu.
 func _pick_matcap(popup: PopupMenu, label: String) -> void:
-	var submenu := popup.get_node_or_null("SolidViewMatcaps") as PopupMenu
+	var submenu := popup.get_node_or_null("WorkbenchMatcaps") as PopupMenu
 	if submenu == null:
 		print("FAIL: matcap submenu not found")
 		return

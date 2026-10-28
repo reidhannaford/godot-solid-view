@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2hpnj2fnenj1"
-path="res://.godot/imported/chrome.png-f66a07f5897b49f2481af4fdde106bb9.ctex"
+uid="uid://r66p01lqix2f"
+path="res://.godot/imported/zebra.png-d9547f053cdd02e664a807360fa3a948.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/solid_view/matcaps/chrome.png"
-dest_files=["res://.godot/imported/chrome.png-f66a07f5897b49f2481af4fdde106bb9.ctex"]
+source_file="res://addons/workbench/matcaps/zebra.png"
+dest_files=["res://.godot/imported/zebra.png-d9547f053cdd02e664a807360fa3a948.ctex"]
 
 [params]
 
