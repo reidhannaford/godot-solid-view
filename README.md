@@ -74,8 +74,12 @@ X-ray needs what the opaque pass throws away: the geometry behind the front surf
 - Objects whose material skips the depth prepass (transparent, `depth_draw_never`) keep their own look.
 - The outline is depth-based, not object-based: two touching objects at the same depth have no line between them.
 - X-ray knows how many surfaces are behind a pixel, not what they look like, so hidden geometry is a flat ghost with silhouette lines rather than shaded as Blender draws it. It costs a second, unshaded render of the scene per editor viewport.
-- The View menu's **View Environment** toggle has no visible effect while Workbench is on; its setting is kept and comes back when Solid is off.
+- The View menu's **View Environment** toggle has no visible effect while Workbench is on; its setting is kept and comes back when Workbench is off.
 
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+## AI disclosure
+
+Claude Code was used to assist in the research and writing of code.
