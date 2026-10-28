@@ -2,13 +2,13 @@
 
 A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender's **Solid** mode: every surface lit by a fixed studio light or a matcap, with the scene's lights, fog, glow, ambient and tonemapping out of the way. For laying out levels in a scene whose real lighting is dark, foggy or otherwise hard to see through.
 
-| Scene as lit | Solid, studio lighting |
+| Scene as lit | Solid |
 | --- | --- |
-| ![The test scene under its own red fog and glow](docs/images/before.png) | ![The same view as grey clay under a fixed studio light](docs/images/studio.png) |
-| **Solid, matcap** | **Solid, studio with texture colour** |
-| ![The same view shaded by the bundled normal matcap](docs/images/matcap.png) | ![The same view with each surface's own albedo](docs/images/studio_texture.png) |
-| **Solid, x-ray** | |
-| ![The same view with the geometry behind the wall and inside the crate showing through](docs/images/studio_xray.png) | |
+| ![The test scene under its own lights and fog](docs/images/before.png) | ![The same view as grey clay under a fixed studio light, with cavity, outline and crease lines](docs/images/studio.png) |
+| **Texture colour** | **X-ray** |
+| ![The same view with each surface's own albedo](docs/images/studio_texture.png) | ![The same view with the geometry behind the wall showing through](docs/images/studio_xray.png) |
+| **Normal matcap** | **Contrast matcap** |
+| ![The same view coloured by the direction each surface faces](docs/images/matcap_normal.png) | ![The same view in two tones](docs/images/matcap_contrast.png) |
 
 **Status: 1.2.0.** Forward+ only. Issues and pull requests are welcome; please say which Godot version and platform you're on.
 

@@ -1,11 +1,15 @@
 extends SceneTree
-## Opens the test scene in a windowed editor and saves screenshots of the
-## viewport with solid view off and in each mode, into docs/captures/.
+## Opens the test scene in a windowed editor, looking through the scene's own
+## Camera3D, and saves screenshots of the viewport with solid view off and in
+## each mode, into docs/captures/.
 ## Run: godot --editor --resolution 1600x900 --path . -s res://tools/capture.gd
 
 const SCENE := "res://test/test_scene.tscn"
 const OUT_DIR := "res://docs/captures"
 const SETTLE_FRAMES := 40
+## How far in front of the camera the editor's orbit pivot is put; any
+## distance gives the same view.
+const PIVOT_DISTANCE := 4.0
 
 
 func _initialize() -> void:
@@ -19,6 +23,9 @@ func _initialize() -> void:
 func _run() -> void:
 	await process_frame
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
+	if not _pin_view_to_camera():
+		quit(1)
+		return
 	EditorInterface.open_scene_from_path(SCENE)
 	var waited := 0
 	while waited < 600:
@@ -28,6 +35,8 @@ func _run() -> void:
 		await process_frame
 		waited += 1
 	EditorInterface.set_main_screen_editor("3D")
+	# The viewport fills the window, so the camera's framing is the image.
+	EditorInterface.distraction_free_mode = true
 	await _settle()
 	_shot("before")
 
@@ -46,9 +55,8 @@ func _run() -> void:
 	var sequence: Array[Array] = [
 		["studio", [0, 2], true],
 		["studio_texture", [3], true],
-		["matcap", [1, 2], true, "Normal"],
-		["matcap_texture", [3], true, "Clay"],
-		["studio_plain", [0, 2], false],
+		["matcap_normal", [1, 2], true, "Normal"],
+		["matcap_contrast", [1, 2], true, "Contrast"],
 	]
 	toggle.button_pressed = true
 	for step: Array in sequence:
@@ -61,9 +69,8 @@ func _run() -> void:
 		_set_checked(popup, 8, step[2] as bool)
 		await _settle()
 		_shot(step[0] as String)
-	_set_checked(popup, 4, true)
-	_set_checked(popup, 5, true)
-	_set_checked(popup, 8, true)
+	popup.id_pressed.emit(0)
+	_pick_matcap(popup, "Clay")
 	_set_checked(popup, 7, true)
 	await _settle()
 	_shot("studio_xray")
@@ -95,6 +102,63 @@ func _set_view_item(text: String) -> void:
 	print("FAIL: view menu item %s not found" % text)
 
 
+## Pins the editor's view to the scene's Camera3D by writing the scene's
+## edit-state file, which the editor reads when it opens the scene. The editor
+## orbits a pivot, so one is put PIVOT_DISTANCE in front of the camera; roll
+## is dropped, since the editor has none. Camera and light gizmos are hidden
+## so the camera's own frustum and the lights' lines don't draw across the view.
+func _pin_view_to_camera() -> bool:
+	var packed := load(SCENE) as PackedScene
+	if packed == null:
+		print("FAIL: can't load %s" % SCENE)
+		return false
+	var instance := packed.instantiate()
+	var camera: Camera3D = null
+	for child: Node in instance.find_children("*", "Camera3D", true, false):
+		camera = child as Camera3D
+		break
+	if camera == null:
+		print("FAIL: no Camera3D in %s" % SCENE)
+		instance.free()
+		return false
+	# The editor camera's basis is Ry(-y_rot) * Rx(-x_rot), so its back vector
+	# is (-cos x sin y, sin x, cos x cos y).
+	# Outside the tree a node has no global transform, so it is composed here.
+	var transform := camera.transform
+	var parent := camera.get_parent() as Node3D
+	while parent != null and parent != instance:
+		transform = parent.transform * transform
+		parent = parent.get_parent() as Node3D
+	var back := transform.basis.z.normalized()
+	var x_rot := asin(clampf(back.y, -1.0, 1.0))
+	var y_rot := atan2(-back.x, back.z)
+	var pivot := transform.origin - back * PIVOT_DISTANCE
+	var state := {
+		"viewport_mode": 1,
+		"fov": camera.fov,
+		"gizmos_status": {"Camera3D": 1, "Light3D": 1},
+		"viewports": [{
+			"distance": PIVOT_DISTANCE,
+			"orthogonal": false,
+			"position": pivot,
+			"x_rotation": x_rot,
+			"y_rotation": y_rot,
+		}, {}, {}, {}],
+	}
+	var camera_name := camera.name
+	instance.free()
+	var config := ConfigFile.new()
+	config.set_value("editor_states", "3D", state)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://.godot/editor"))
+	var path := "res://.godot/editor/%s-editstate-%s.cfg" % [SCENE.get_file(), SCENE.md5_text()]
+	var error := config.save(path)
+	if error != OK:
+		print("FAIL: can't write %s (%s)" % [path, error_string(error)])
+		return false
+	print("view from %s: pivot %s x %.3f y %.3f fov %.1f" % [camera_name, pivot, x_rot, y_rot, state["fov"]])
+	return true
+
+
 ## Picks a bundled matcap by its label in the Bundled MatCaps submenu.
 func _pick_matcap(popup: PopupMenu, label: String) -> void:
 	var submenu := popup.get_node_or_null("SolidViewMatcaps") as PopupMenu
@@ -119,8 +183,27 @@ func _settle() -> void:
 		await process_frame
 
 
+## Saves the whole editor window as name.png and the 3D viewport alone as
+## name_view.png, trimmed to a centred 16:9: the editor keeps the camera's
+## vertical field of view, so that is the framing of the camera's own preview.
 func _shot(name: String) -> void:
 	var image := root.get_texture().get_image()
 	var path := "%s/%s.png" % [OUT_DIR, name]
 	var error := image.save_png(path)
 	print("shot %s (%s)" % [path, error_string(error)])
+	var container := EditorInterface.get_editor_viewport_3d(0).get_parent() as Control
+	var scale := float(image.get_width()) / root.size.x
+	var rect := container.get_global_rect()
+	var region := Rect2i((rect.position * scale).round(), (rect.size * scale).round())
+	var wanted_width := int(round(region.size.y * 16.0 / 9.0))
+	if wanted_width < region.size.x:
+		region.position.x += (region.size.x - wanted_width) / 2
+		region.size.x = wanted_width
+	else:
+		var wanted_height := int(round(region.size.x * 9.0 / 16.0))
+		region.position.y += (region.size.y - wanted_height) / 2
+		region.size.y = wanted_height
+	var view := image.get_region(region)
+	var view_path := "%s/%s_view.png" % [OUT_DIR, name]
+	error = view.save_png(view_path)
+	print("shot %s %s (%s)" % [view_path, view.get_size(), error_string(error)])

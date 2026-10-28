@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- README images retaken through the test scene's own Camera3D, in six panels: as lit, solid, texture colour, x-ray, and the normal and contrast matcaps. The capture reads the camera from the scene and hides camera and light gizmos.
+
 ## 1.2.0, 2026-10-28
 
 - Six more bundled matcaps beside clay, in a **Bundled MatCaps** submenu: Normal (the normal as a colour, like Blender's check_normal), Contrast (two tones with a rim), Toon (three cel bands), Zebra (a reflection check), Wax (red sculpting wax) and Chrome (sky over floor). All are baked by `tools/make_matcap.gd`.
