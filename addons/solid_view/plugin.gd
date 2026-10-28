@@ -11,13 +11,16 @@ const SolidViewEffect := preload("solid_view_effect.gd")
 const SHORTCUT_PATH := "solid_view/toggle"
 const XRAY_SHORTCUT_PATH := "solid_view/toggle_xray"
 
-enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, DEFAULT_MATCAP, XRAY, CREASE }
+enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, XRAY, CREASE }
+## Ids of the bundled matcaps in their submenu: this plus their index.
+const MATCAP_ID_BASE := 100
 
 var _controller: SolidViewController
 var _settings: SolidViewSettings
 var _bar: HBoxContainer
 var _toggle: Button
 var _menu: MenuButton
+var _matcap_menu: PopupMenu
 var _file_dialog: EditorFileDialog
 
 
@@ -153,8 +156,16 @@ func _build_menu() -> void:
 	popup.add_separator()
 	popup.add_check_item("X-Ray", Item.XRAY)
 	popup.add_separator()
+	_matcap_menu = PopupMenu.new()
+	_matcap_menu.name = "SolidViewMatcaps"
+	_matcap_menu.hide_on_checkable_item_selection = false
+	var index := 0
+	for label: String in SolidViewSettings.BUNDLED_MATCAPS:
+		_matcap_menu.add_radio_check_item(label, MATCAP_ID_BASE + index)
+		index += 1
+	_matcap_menu.id_pressed.connect(_on_matcap_menu_pressed)
+	popup.add_submenu_node_item("Bundled MatCaps", _matcap_menu)
 	popup.add_item("Choose MatCap…", Item.CHOOSE_MATCAP)
-	popup.add_item("Use Bundled MatCap", Item.DEFAULT_MATCAP)
 
 
 ## Shows the current settings on the menu items; the menu may be open.
@@ -169,7 +180,10 @@ func _sync_menu() -> void:
 	popup.set_item_checked(popup.get_item_index(Item.CREASE), _settings.crease)
 	popup.set_item_disabled(popup.get_item_index(Item.CREASE), not _settings.outline)
 	popup.set_item_checked(popup.get_item_index(Item.XRAY), _settings.xray)
-	popup.set_item_disabled(popup.get_item_index(Item.DEFAULT_MATCAP), _settings.matcap_path == SolidViewSettings.DEFAULT_MATCAP)
+	var index := 0
+	for label: String in SolidViewSettings.BUNDLED_MATCAPS:
+		_matcap_menu.set_item_checked(_matcap_menu.get_item_index(MATCAP_ID_BASE + index), _settings.matcap_path == SolidViewSettings.BUNDLED_MATCAPS[label])
+		index += 1
 
 
 func _on_menu_pressed(id: int) -> void:
@@ -193,9 +207,19 @@ func _on_menu_pressed(id: int) -> void:
 		Item.CHOOSE_MATCAP:
 			_choose_matcap()
 			return
-		Item.DEFAULT_MATCAP:
-			_settings.matcap_path = SolidViewSettings.DEFAULT_MATCAP
-			_settings.shading = SolidViewEffect.Shading.MATCAP
+	_settings.save()
+	_apply_settings()
+	_sync_menu()
+	_update_tooltip()
+
+
+func _on_matcap_menu_pressed(id: int) -> void:
+	var labels := SolidViewSettings.BUNDLED_MATCAPS.keys()
+	var index := id - MATCAP_ID_BASE
+	if index < 0 or index >= labels.size():
+		return
+	_settings.matcap_path = SolidViewSettings.BUNDLED_MATCAPS[labels[index] as String]
+	_settings.shading = SolidViewEffect.Shading.MATCAP
 	_settings.save()
 	_apply_settings()
 	_sync_menu()

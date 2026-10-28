@@ -4,7 +4,7 @@
 
 - `addons/solid_view/`: the addon, the only folder another project needs. `plugin.gd` builds the toolbar and shortcut; `solid_view_controller.gd` puts the mode on the four editor viewports and takes it off, and runs the hidden overdraw viewports for x-ray; `solid_view_effect.gd` is the `CompositorEffect` that drives `solid_view.glsl`; `solid_view_settings.gd` reads and writes the Editor Settings; `matcaps/` holds the bundled matcap.
 - `test/`: a scene with heavy fog, glow and coloured lights to prove the mode on, and the headless test.
-- `tools/`: `run_tests.sh`, `sync_to.sh <project>`, `capture.sh` with `capture.gd` (windowed screenshots of every mode into `docs/captures/`, gitignored) and `make_matcap.gd` (bakes `matcaps/clay.png`).
+- `tools/`: `run_tests.sh`, `sync_to.sh <project>`, `capture.sh` with `capture.gd` (windowed screenshots of every mode into `docs/captures/`, gitignored) and `make_matcap.gd` (bakes every image in `matcaps/`).
 - `docs/`: this file and the README images.
 
 ## Conventions

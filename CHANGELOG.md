@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Six more bundled matcaps beside clay, in a **Bundled MatCaps** submenu: Normal (the normal as a colour, like Blender's check_normal), Contrast (two tones with a rim), Toon (three cel bands), Zebra (a reflection check), Wax (red sculpting wax) and Chrome (sky over floor). All are baked by `tools/make_matcap.gd`.
+- A matcap is shown at its own brightness in flat colour, instead of dimmed to 80%; clay is baked darker to keep matching the studio light. Texture colour still multiplies the matcap by the albedo.
+
 ## 1.1.0, 2026-10-28
 
 - **X-ray**: see through the front surfaces to the geometry behind them, as Blender's X-ray does. In the options menu, Alt+Shift+Z by default (`solid_view/toggle_xray`), opacity under `solid_view/xray_alpha` in Editor Settings. Hidden geometry comes from a hidden per-viewport overdraw render, so it shows as a ghost with silhouette lines rather than shaded.

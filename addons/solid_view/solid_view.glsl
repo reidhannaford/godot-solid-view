@@ -253,7 +253,11 @@ void main() {
 		base = imageLoad(color_image, uv).rgb;
 	}
 
-	vec3 color = params.shading > 0.5 ? shade_matcap(n, base) : shade_studio(n, base);
+	// A matcap carries its own brightness; the flat base only matters for
+	// the studio light, and the albedo for texture colour.
+	vec3 color = params.shading > 0.5
+			? shade_matcap(n, params.texture_color > 0.5 ? base : vec3(1.0))
+			: shade_studio(n, base);
 
 	float dist = view_distance(depth);
 	if (params.cavity > 0.0) {

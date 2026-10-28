@@ -5,6 +5,7 @@ extends SceneTree
 ## Run: godot --headless --editor --path . -s res://test/plugin_test.gd
 
 const SolidViewController := preload("res://addons/solid_view/solid_view_controller.gd")
+const SolidViewSettings := preload("res://addons/solid_view/solid_view_settings.gd")
 
 var _failures: int = 0
 
@@ -101,6 +102,12 @@ func _run() -> void:
 		toggle.button_pressed = false
 		await process_frame
 		_check(viewport.msaa_3d == msaa_before, "the toggle turns it off again")
+
+	for label: String in SolidViewSettings.BUNDLED_MATCAPS:
+		var path: String = SolidViewSettings.BUNDLED_MATCAPS[label]
+		_check(ResourceLoader.exists(path), "bundled matcap %s exists at %s" % [label, path])
+	var matcap_menu := EditorInterface.get_base_control().find_child("SolidViewMatcaps", true, false) as PopupMenu
+	_check(matcap_menu != null and matcap_menu.item_count == SolidViewSettings.BUNDLED_MATCAPS.size(), "the Bundled MatCaps submenu lists every bundled matcap")
 
 	var settings := EditorInterface.get_editor_settings()
 	_check(settings.has_shortcut("solid_view/toggle"), "the shortcut is registered")

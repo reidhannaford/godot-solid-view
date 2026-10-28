@@ -5,7 +5,18 @@ extends RefCounted
 ## starts off, like a debug draw mode.
 
 const PREFIX := "solid_view/"
-const DEFAULT_MATCAP := "res://addons/solid_view/matcaps/clay.png"
+const MATCAP_DIR := "res://addons/solid_view/matcaps/"
+const DEFAULT_MATCAP := MATCAP_DIR + "clay.png"
+## The matcaps that ship with the addon, by menu label, in menu order.
+const BUNDLED_MATCAPS: Dictionary[String, String] = {
+	"Clay": MATCAP_DIR + "clay.png",
+	"Normal": MATCAP_DIR + "normal.png",
+	"Contrast": MATCAP_DIR + "contrast.png",
+	"Toon": MATCAP_DIR + "toon.png",
+	"Zebra": MATCAP_DIR + "zebra.png",
+	"Wax": MATCAP_DIR + "wax.png",
+	"Chrome": MATCAP_DIR + "chrome.png",
+}
 
 var shading: int = 0 # SolidViewEffect.Shading
 var texture_color: bool = false

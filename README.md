@@ -6,7 +6,7 @@ A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender
 | --- | --- |
 | ![The test scene under its own red fog and glow](docs/images/before.png) | ![The same view as grey clay under a fixed studio light](docs/images/studio.png) |
 | **Solid, matcap** | **Solid, studio with texture colour** |
-| ![The same view shaded by the bundled clay matcap](docs/images/matcap.png) | ![The same view with each surface's own albedo](docs/images/studio_texture.png) |
+| ![The same view shaded by the bundled normal matcap](docs/images/matcap.png) | ![The same view with each surface's own albedo](docs/images/studio_texture.png) |
 | **Solid, x-ray** | |
 | ![The same view with the geometry behind the wall and inside the crate showing through](docs/images/studio_xray.png) | |
 
@@ -16,7 +16,13 @@ A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender
 
 - **Solid** toggle in the 3D toolbar, **Alt+Z** (Option+Z on macOS) by default, rebindable under `solid_view/toggle` in Editor Settings > Shortcuts.
 - **Studio lighting**: a warm key, a cool fill and a faint rim, fixed to the view, so nothing is ever in the dark.
-- **MatCap**: a sphere image sampled by view-space normal. A clay one is bundled; **Choose MatCap…** takes any image in the project, including the `.exr` matcaps that ship with Blender.
+- **MatCap**: a sphere image sampled by view-space normal. Seven are bundled, under **Bundled MatCaps**, and **Choose MatCap…** takes any image in the project, including the `.exr` matcaps that ship with Blender.
+
+  | Clay | Normal | Contrast | Toon | Zebra | Wax | Chrome |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | ![Clay](addons/solid_view/matcaps/clay.png) | ![Normal](addons/solid_view/matcaps/normal.png) | ![Contrast](addons/solid_view/matcaps/contrast.png) | ![Toon](addons/solid_view/matcaps/toon.png) | ![Zebra](addons/solid_view/matcaps/zebra.png) | ![Wax](addons/solid_view/matcaps/wax.png) | ![Chrome](addons/solid_view/matcaps/chrome.png) |
+
+  Clay matches the studio light. Normal colours each surface by the direction it faces, as a normal map would, so facing up is green, right is pink and towards you is lavender. Contrast is two tones with a thin rim. Toon is three cel bands with a specular dot. Zebra reflects a striped room, so a smooth surface shows smooth stripes and a kink breaks them. Wax is red sculpting wax. Chrome reflects a bright sky over a dark floor.
 - **Flat or texture colour**: a plain grey, or each surface's own albedo (the viewport draws unshaded underneath, so textures show but scene lights don't).
 - **Cavity**: screen-space ridges brighten and valleys darken, as Blender's *Screen* cavity does.
 - **Outline**: a dark line where a surface drops away to something farther, or to the sky. Its width is `solid_view/outline_width` in Editor Settings, in points, so it looks the same on any display.
@@ -47,8 +53,8 @@ The menu next to the toggle:
 | Outline | Dark edge where depth jumps. |
 | Crease Lines | Also a line along creases sharper than 45 degrees. |
 | X-Ray | Front surfaces half transparent, geometry behind them ghosted. |
+| Bundled MatCaps | Clay, Normal, Contrast, Toon, Zebra, Wax or Chrome; switches to MatCap. |
 | Choose MatCap… | Pick an image from the project; switches to MatCap. |
-| Use Bundled MatCap | Back to the clay matcap. |
 
 Editor Settings > Solid View holds the rest: the outline width in points, and the x-ray opacity. Changes there apply at once.
 

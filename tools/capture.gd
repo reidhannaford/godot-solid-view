@@ -40,31 +40,34 @@ func _run() -> void:
 		return
 	var popup := menu.get_popup()
 	# Item ids match plugin.gd's Item enum: 0 studio, 1 matcap, 2 flat,
-	# 3 texture, 4 cavity, 5 outline, 8 x-ray, 9 crease lines. Cavity, outline, crease and x-ray are toggles and are
+	# 3 texture, 4 cavity, 5 outline, 7 x-ray, 8 crease lines; a bundled matcap
+	# is picked by its label in the submenu. Cavity, outline, crease and x-ray are toggles and are
 	# remembered in editor settings, so they are set to a wanted state.
 	var sequence: Array[Array] = [
 		["studio", [0, 2], true],
 		["studio_texture", [3], true],
-		["matcap", [1, 2], true],
-		["matcap_texture", [3], true],
+		["matcap", [1, 2], true, "Normal"],
+		["matcap_texture", [3], true, "Clay"],
 		["studio_plain", [0, 2], false],
 	]
 	toggle.button_pressed = true
 	for step: Array in sequence:
 		for id: int in step[1] as Array:
 			popup.id_pressed.emit(id)
+		if step.size() > 3:
+			_pick_matcap(popup, step[3] as String)
 		_set_checked(popup, 4, step[2] as bool)
 		_set_checked(popup, 5, step[2] as bool)
-		_set_checked(popup, 9, step[2] as bool)
+		_set_checked(popup, 8, step[2] as bool)
 		await _settle()
 		_shot(step[0] as String)
 	_set_checked(popup, 4, true)
 	_set_checked(popup, 5, true)
-	_set_checked(popup, 9, true)
 	_set_checked(popup, 8, true)
+	_set_checked(popup, 7, true)
 	await _settle()
 	_shot("studio_xray")
-	_set_checked(popup, 8, false)
+	_set_checked(popup, 7, false)
 	_set_view_item("Orthogonal")
 	await _settle()
 	_shot("studio_ortho")
@@ -90,6 +93,19 @@ func _set_view_item(text: String) -> void:
 				view_popup.id_pressed.emit(view_popup.get_item_id(index))
 				return
 	print("FAIL: view menu item %s not found" % text)
+
+
+## Picks a bundled matcap by its label in the Bundled MatCaps submenu.
+func _pick_matcap(popup: PopupMenu, label: String) -> void:
+	var submenu := popup.get_node_or_null("SolidViewMatcaps") as PopupMenu
+	if submenu == null:
+		print("FAIL: matcap submenu not found")
+		return
+	for index: int in submenu.item_count:
+		if submenu.get_item_text(index) == label:
+			submenu.id_pressed.emit(submenu.get_item_id(index))
+			return
+	print("FAIL: bundled matcap %s not found" % label)
 
 
 ## Presses a check item only if it isn't already in the wanted state.
