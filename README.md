@@ -4,11 +4,11 @@ A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender
 
 | Scene as lit | Solid |
 | --- | --- |
-| ![The test scene under its own lights and fog](docs/images/before.png) | ![The same view as grey clay under a fixed studio light, with cavity, outline and crease lines](docs/images/studio.png) |
+| ![The test scene under its own lights and fog](docs/images/before.webp) | ![The same view as grey clay under a fixed studio light, with cavity, outline and crease lines](docs/images/studio.webp) |
 | **Texture colour** | **X-ray** |
-| ![The same view with each surface's own albedo](docs/images/studio_texture.png) | ![The same view with the geometry behind the wall showing through](docs/images/studio_xray.png) |
+| ![The same view with each surface's own albedo](docs/images/studio_texture.webp) | ![The same view with the geometry behind the wall showing through](docs/images/studio_xray.webp) |
 | **Normal matcap** | **Contrast matcap** |
-| ![The same view coloured by the direction each surface faces](docs/images/matcap_normal.png) | ![The same view in two tones](docs/images/matcap_contrast.png) |
+| ![The same view coloured by the direction each surface faces](docs/images/matcap_normal.webp) | ![The same view in two tones](docs/images/matcap_contrast.webp) |
 
 **Status: 1.2.0.** Forward+ only. Issues and pull requests are welcome; please say which Godot version and platform you're on.
 

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- README images retaken through the test scene's own Camera3D, in six panels: as lit, solid, texture colour, x-ray, and the normal and contrast matcaps. The capture reads the camera from the scene and hides camera and light gizmos.
+- README images in six panels, through the test scene's own camera: as lit, solid, texture colour, x-ray, and the normal and contrast matcaps.
 
 ## 1.2.0, 2026-10-28
 
