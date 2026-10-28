@@ -141,6 +141,10 @@ mesh = SubResource("sphere")
 transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, -2, 0.5, 0)
 mesh = SubResource("sphere")
 
+[node name="Post" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.2, 0, 0, 0, 2, 0, 0, 0, 0.2, -3.4, 1, 0.8)
+mesh = SubResource("box")
+
 [node name="Glass" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.6, 3)
 mesh = SubResource("sphere")

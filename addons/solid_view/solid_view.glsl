@@ -166,9 +166,13 @@ float silhouette(ivec2 uv, float dist) {
 }
 
 // A line on one side of a sharp crease: where a neighbour to the right or
-// below, on the same surface, faces more than CREASE_COS away. Checked in
-// two directions only so the line is outline_width wide, like the silhouette,
-// instead of straddling the crease at twice that.
+// below faces more than CREASE_COS away. Checked in two directions only so
+// the line is outline_width wide, like the silhouette, instead of straddling
+// the crease at twice that. A neighbour across a depth jump is the
+// silhouette's job: the jump is scored the way the silhouette scores it,
+// against the slope through the opposite neighbour, and handed over only
+// once the silhouette line is fully on, so the two never leave a gap
+// between them where an edge turns from a contact into an overhang.
 float crease(ivec2 uv, vec3 n_c, float dist) {
 	float q_c = depth_measure(raw_depth(uv));
 	float threshold = jump_threshold(q_c, dist);
@@ -176,16 +180,18 @@ float crease(ivec2 uv, vec3 n_c, float dist) {
 	int width = outline_width();
 	for (int k = 1; k <= width; k++) {
 		for (int i = 0; i < 2; i++) {
-			ivec2 p = uv + dirs[i] * k;
-			float depth = raw_depth(p);
+			ivec2 step = dirs[i] * k;
+			float depth = raw_depth(uv + step);
 			if (!has_geometry(depth)) {
 				continue;
 			}
-			// Across a depth jump it's a silhouette, not a crease.
-			if (abs(depth_measure(depth) - q_c) > threshold * float(k)) {
+			float q_n = depth_measure(depth);
+			float q_b = depth_measure(raw_depth(uv - step));
+			float residual = (q_n - q_c) - (q_c - q_b);
+			if (abs(residual) > 2.0 * threshold) {
 				continue;
 			}
-			if (dot(n_c, load_normal(p)) < CREASE_COS) {
+			if (dot(n_c, load_normal(uv + step)) < CREASE_COS) {
 				return 1.0;
 			}
 		}
