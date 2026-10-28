@@ -10,7 +10,7 @@ A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender
 | **Solid, x-ray** | |
 | ![The same view with the geometry behind the wall and inside the crate showing through](docs/images/studio_xray.png) | |
 
-**Status: 1.2.0.** Forward+ only. In daily use on one game project. Issues and pull requests are welcome; please say which Godot version and platform you're on.
+**Status: 1.2.0.** Forward+ only. Issues and pull requests are welcome; please say which Godot version and platform you're on.
 
 ## What it does
 
