@@ -69,11 +69,6 @@ func _exit_tree() -> void:
 	_controller = null
 
 
-func _process(_delta: float) -> void:
-	if _controller != null:
-		_controller.apply()
-
-
 func _forward_3d_gui_input(_viewport_camera: Camera3D, event: InputEvent) -> int:
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:

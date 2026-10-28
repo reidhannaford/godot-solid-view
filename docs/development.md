@@ -37,7 +37,8 @@ After changing `solid_view.glsl`, a windowed run is also the compile check: a ba
 
 - The `.glsl` is loaded, not preloaded: on a project's first scan it isn't imported yet when the scripts compile.
 - The normal and roughness prepass only runs when the camera has a valid environment, which is one reason the controller always sets one.
-- A post-opaque write only survives without MSAA; with MSAA the colour buffer is resolved after the transparent pass, overwriting it. The controller turns MSAA off per viewport while active, and the editor re-applies project settings to its viewports on a settings change, which is why `apply()` runs every frame while active.
+- A post-opaque write only survives without MSAA; with MSAA the colour buffer is resolved after the transparent pass, overwriting it. The controller turns MSAA off per viewport while active, and the editor re-applies project settings to its viewports on a settings change, which is why MSAA is re-asserted before every draw.
+- The editor saves its View Environment toggle in the per-scene edit state as `use_environment = camera->get_environment().is_valid()`, and on load toggles the menu item whenever that differs from the camera. An environment left on the camera between frames is therefore saved as the user's choice, and the scene reopens with View Environment off and a grey background. So the controller only puts its environment, compositor and debug draw on the cameras between `RenderingServer.frame_pre_draw` and `frame_post_draw`; the editor renders single-threaded, so both fire synchronously around the draw and no editor code runs in between.
 - A `RefCounted` can't be named `_get`, `_set` or any other Object virtual; the settings helper is `_read`.
 - Preload constants need addon-specific names (`SolidViewSettings`, not `Settings`): a game project with a global `class_name` of the same name makes the plugin fail to parse there, even though it parses fine here.
 

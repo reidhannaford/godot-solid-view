@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: a scene saved while Solid was on reopened with the editor's View Environment off and a grey background. The addon now only puts its environment, compositor and debug draw on the editor cameras while a frame is being drawn, so the editor's own view state is what gets saved. Scenes already affected: tick View Environment in the viewport's View menu once and save.
+
 ## 1.0.1, 2026-10-27
 
 - The outline now draws on smaller depth steps, so a box top against the floor behind it keeps its edge from a steep view. Flat surfaces are still edge-free.

@@ -1,12 +1,22 @@
 @tool
 extends RefCounted
-## Puts Solid View on the editor's 3D viewports and takes it off again. While
-## active, each editor camera gets a neutral environment (a flat background,
-## no fog, glow, ambient or tonemapping) and a compositor carrying the effect;
-## each viewport gets MSAA off, and draws unshaded when the texture colour is
-## wanted. The editor resets some of these on its own (the View Environment
-## toggle, a project settings change), so [method apply] is meant to be
-## called every frame while active, and is cheap when nothing changed.
+## Puts Solid View on the editor's 3D viewports and takes it off again.
+##
+## While active, each editor camera draws with a neutral environment (a flat
+## background, no fog, glow, ambient or tonemapping) and a compositor carrying
+## the effect, and each viewport draws unshaded when the texture colour is
+## wanted. Those are only on the camera and viewport for the duration of a
+## draw: [method before_draw] puts them on from
+## [signal RenderingServer.frame_pre_draw] and [method after_draw] puts the
+## editor's own values back from [signal RenderingServer.frame_post_draw].
+## Between frames the editor sees its own state, which matters because it
+## stores its View Environment toggle as "does the camera have an
+## environment" in the per-scene edit state, and would otherwise save and
+## replay this addon's environment as the user's choice.
+##
+## MSAA is the exception: changing it rebuilds the render buffers, so it stays
+## off for as long as the mode is on, and is re-asserted before every draw
+## because the editor puts the project's value back on a settings change.
 
 const SolidViewEffect := preload("solid_view_effect.gd")
 const VIEWPORT_COUNT := 4
@@ -30,9 +40,11 @@ var texture_color: bool = false:
 		texture_color = value
 		effect.texture_color = value
 
-## Per viewport, what the editor had before: camera, environment, compositor,
-## msaa_3d and debug_draw.
-var _saved: Array[Dictionary] = []
+## Per viewport taken over: its camera, the MSAA it had, and during a draw
+## the environment, compositor and debug draw it had before the draw.
+var _entries: Array[Dictionary] = []
+## True between [method before_draw] and [method after_draw].
+var _drawing: bool = false
 
 
 func _init() -> void:
@@ -47,29 +59,52 @@ func _init() -> void:
 	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 
 
-## Re-asserts the solid view state on every editor viewport, undoing anything
-## the editor reset since the last call. Does nothing while inactive.
-func apply() -> void:
-	if not active:
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and active:
+		_restore()
+
+
+## Puts the solid view state on every editor viewport for the draw that
+## follows. Connected to [signal RenderingServer.frame_pre_draw] while active.
+func before_draw() -> void:
+	if not active or _drawing:
 		return
-	for entry: Dictionary in _saved:
+	_drawing = true
+	for entry: Dictionary in _entries:
 		var camera := entry["camera"] as Camera3D
 		var viewport := entry["viewport"] as SubViewport
 		if not is_instance_valid(camera) or not is_instance_valid(viewport):
 			continue
-		if camera.environment != environment:
-			camera.environment = environment
-		if camera.compositor != compositor:
-			camera.compositor = compositor
+		entry["environment"] = camera.environment
+		entry["compositor"] = camera.compositor
+		entry["debug_draw"] = viewport.debug_draw
+		camera.environment = environment
+		camera.compositor = compositor
 		if viewport.msaa_3d != Viewport.MSAA_DISABLED:
 			viewport.msaa_3d = Viewport.MSAA_DISABLED
-		var wanted := Viewport.DEBUG_DRAW_UNSHADED if texture_color else Viewport.DEBUG_DRAW_DISABLED
-		if viewport.debug_draw != wanted:
-			viewport.debug_draw = wanted
+		viewport.debug_draw = Viewport.DEBUG_DRAW_UNSHADED if texture_color else Viewport.DEBUG_DRAW_DISABLED
+
+
+## Puts the editor's own camera and viewport state back after a draw.
+## Connected to [signal RenderingServer.frame_post_draw] while active.
+func after_draw() -> void:
+	if not _drawing:
+		return
+	_drawing = false
+	for entry: Dictionary in _entries:
+		var camera := entry["camera"] as Camera3D
+		var viewport := entry["viewport"] as SubViewport
+		if is_instance_valid(camera):
+			if camera.environment == environment:
+				camera.environment = entry.get("environment") as Environment
+			if camera.compositor == compositor:
+				camera.compositor = entry.get("compositor") as Compositor
+		if is_instance_valid(viewport) and entry.has("debug_draw"):
+			viewport.debug_draw = entry["debug_draw"] as Viewport.DebugDraw
 
 
 func _take() -> void:
-	_saved.clear()
+	_entries.clear()
 	for index: int in VIEWPORT_COUNT:
 		var viewport := EditorInterface.get_editor_viewport_3d(index)
 		if viewport == null:
@@ -77,27 +112,26 @@ func _take() -> void:
 		var camera := viewport.get_camera_3d()
 		if camera == null:
 			continue
-		_saved.append({
+		_entries.append({
 			"viewport": viewport,
 			"camera": camera,
-			"environment": camera.environment,
-			"compositor": camera.compositor,
 			"msaa_3d": viewport.msaa_3d,
-			"debug_draw": viewport.debug_draw,
 		})
-	apply()
+		viewport.msaa_3d = Viewport.MSAA_DISABLED
+	if not RenderingServer.frame_pre_draw.is_connected(before_draw):
+		RenderingServer.frame_pre_draw.connect(before_draw)
+	if not RenderingServer.frame_post_draw.is_connected(after_draw):
+		RenderingServer.frame_post_draw.connect(after_draw)
 
 
 func _restore() -> void:
-	for entry: Dictionary in _saved:
-		var camera := entry["camera"] as Camera3D
+	if RenderingServer.frame_pre_draw.is_connected(before_draw):
+		RenderingServer.frame_pre_draw.disconnect(before_draw)
+	if RenderingServer.frame_post_draw.is_connected(after_draw):
+		RenderingServer.frame_post_draw.disconnect(after_draw)
+	after_draw()
+	for entry: Dictionary in _entries:
 		var viewport := entry["viewport"] as SubViewport
-		if is_instance_valid(camera):
-			if camera.environment == environment:
-				camera.environment = entry["environment"] as Environment
-			if camera.compositor == compositor:
-				camera.compositor = entry["compositor"] as Compositor
-		if is_instance_valid(viewport):
+		if is_instance_valid(viewport) and viewport.msaa_3d == Viewport.MSAA_DISABLED:
 			viewport.msaa_3d = entry["msaa_3d"] as Viewport.MSAA
-			viewport.debug_draw = entry["debug_draw"] as Viewport.DebugDraw
-	_saved.clear()
+	_entries.clear()

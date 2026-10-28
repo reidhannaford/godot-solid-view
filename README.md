@@ -19,7 +19,7 @@ A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender
 - **Cavity**: screen-space ridges brighten and valleys darken, as Blender's *Screen* cavity does.
 - **Outline**: a dark line where a surface drops away to something farther, or to the sky.
 - The editor's grid, gizmos, selection outline and any transparent objects still draw on top, as they would normally.
-- Nothing in the scene is touched. The addon only sets the editor cameras' environment and compositor and the editor viewports' MSAA and debug draw, and puts them back when it's switched off or disabled.
+- Nothing in the scene is touched. The addon only sets the editor cameras' environment and compositor and the editor viewports' debug draw, and only while a frame is being drawn; MSAA is off on the editor viewports for as long as the mode is on. Everything is put back when it's switched off or disabled.
 
 ## Requirements
 
@@ -57,7 +57,7 @@ MSAA is switched off on the editor viewports while the mode is on: with MSAA, th
 - Forward+ only. Mobile and Compatibility have no normal buffer for a compositor effect to read.
 - Objects whose material skips the depth prepass (transparent, `depth_draw_never`) keep their own look.
 - The outline is depth-based, not object-based: two touching objects at the same depth have no line between them.
-- The View menu's **View Environment** toggle is overridden while Solid is on.
+- The View menu's **View Environment** toggle has no visible effect while Solid is on; its setting is kept and comes back when Solid is off.
 
 ## Licence
 
