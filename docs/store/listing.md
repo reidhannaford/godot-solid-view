@@ -73,7 +73,7 @@ What to paste into each field of the Godot Asset Store (store.godotengine.org) w
 - **Asset type**: Addon
 - **Licence**: MIT (matches `LICENSE` in the repository and the copy inside `addons/workbench/`)
 - **Source code**: https://github.com/reidhannaford/godot-workbench
-- **Tags** (not the asset's name; one form of each word): editor, viewport, shading, matcap, lighting, level-design, blockout, blender, 3d
+- **Tags** (five show while browsing; not the asset's name, one form of each word): editor, viewport, shading, matcap, blender. Alternates if the store already has close ones: level-design, blockout, lighting, 3d.
 - **AI usage disclosure**: the store calls this mandatory when AI was used. The code and documentation were written with Claude, Anthropic's AI assistant, directed and reviewed by the author. Say so in whatever form the field takes.
 
 ## Media
