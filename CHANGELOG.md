@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0, 2026-10-28
 
 - Six more bundled matcaps beside clay, in a **Bundled MatCaps** submenu: Normal (the normal as a colour, like Blender's check_normal), Contrast (two tones with a rim), Toon (three cel bands), Zebra (a reflection check), Wax (red sculpting wax) and Chrome (sky over floor). All are baked by `tools/make_matcap.gd`.
 - A matcap is shown at its own brightness in flat colour, instead of dimmed to 80%; clay is baked darker to keep matching the studio light. Texture colour still multiplies the matcap by the albedo.
