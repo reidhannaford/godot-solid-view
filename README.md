@@ -19,7 +19,8 @@ A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender
 - **MatCap**: a sphere image sampled by view-space normal. A clay one is bundled; **Choose MatCap…** takes any image in the project, including the `.exr` matcaps that ship with Blender.
 - **Flat or texture colour**: a plain grey, or each surface's own albedo (the viewport draws unshaded underneath, so textures show but scene lights don't).
 - **Cavity**: screen-space ridges brighten and valleys darken, as Blender's *Screen* cavity does.
-- **Outline**: a dark line where a surface drops away to something farther, or to the sky.
+- **Outline**: a dark line where a surface drops away to something farther, or to the sky. Its width is `solid_view/outline_width` in Editor Settings, in points, so it looks the same on any display.
+- **Crease Lines**: with Outline on, also a line along sharp creases within a surface, where neighbouring normals differ by more than 45 degrees. Blender has no such line; its creases show through Cavity only.
 - **X-ray**: see through the front surfaces to what is behind them, as Blender's X-ray does. **Alt+Shift+Z** by default (`solid_view/toggle_xray`); the front surface's opacity is `solid_view/xray_alpha` in Editor Settings. Alt+click in the viewport lists everything under the cursor, so hidden objects can be picked.
 - The editor's grid, gizmos, selection outline and any transparent objects still draw on top, as they would normally.
 - Nothing in the scene is touched. The addon only sets the editor cameras' environment and compositor and the editor viewports' debug draw, and only while a frame is being drawn; MSAA is off on the editor viewports for as long as the mode is on. Everything is put back when it's switched off or disabled.
@@ -44,9 +45,12 @@ The menu next to the toggle:
 | Flat Colour / Texture Colour | A plain grey, or each surface's albedo. |
 | Cavity | Ridges and valleys from the normals. |
 | Outline | Dark edge where depth jumps. |
+| Crease Lines | Also a line along creases sharper than 45 degrees. |
 | X-Ray | Front surfaces half transparent, geometry behind them ghosted. |
 | Choose MatCap… | Pick an image from the project; switches to MatCap. |
 | Use Bundled MatCap | Back to the clay matcap. |
+
+Editor Settings > Solid View holds the rest: the outline width in points, and the x-ray opacity. Changes there apply at once.
 
 Options are Editor Settings (`solid_view/…`), so they follow you between projects. The toggle itself starts off every session.
 

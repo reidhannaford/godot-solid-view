@@ -43,6 +43,7 @@ After changing `solid_view.glsl`, a windowed run is also the compile check: a ba
 - Preload constants need addon-specific names (`SolidViewSettings`, not `Settings`): a game project with a global `class_name` of the same name makes the plugin fail to parse there, even though it parses fine here.
 - X-ray rests on three editor facts, all checked in the 4.7.2 source: the Overdraw debug draw replaces every material with `blend_add, unshaded`, ALBEDO (0.4, 0.8, 0.8) and ALPHA 0.1 on a black clear, so each surface adds 0.08 of green and the layer count is `g / 0.08`; the editor cameras cull the game's 20 layers plus their own gizmo, grid and tool layers at bits 24 to 30, which the x-ray camera masks out; and the RenderingServer draws child viewports before their parents, so a SubViewport added under the editor's viewport is current in the same frame. The hidden viewport renders in HDR (`use_hdr_2d`) so its texture is linear and read as stored.
 - The overdraw material override only exists in builds with `DEBUG_ENABLED`, which every editor build is.
+- Lines are drawn in pixels of the internal render buffer. The setting is in points: the plugin multiplies it by `EditorInterface.get_editor_scale()` (2 on a 2x display) and the effect by internal size over target size, so a 3D render scale below 1 doesn't thin them. The silhouette and crease tests look up to `outline_width` pixels along +x and +y (and -x, -y for the silhouette) so the line lands on one side of an edge at that width.
 
 ## Releasing
 

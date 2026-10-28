@@ -40,7 +40,7 @@ func _run() -> void:
 		return
 	var popup := menu.get_popup()
 	# Item ids match plugin.gd's Item enum: 0 studio, 1 matcap, 2 flat,
-	# 3 texture, 4 cavity, 5 outline, 8 x-ray. Cavity, outline and x-ray are toggles and are
+	# 3 texture, 4 cavity, 5 outline, 8 x-ray, 9 crease lines. Cavity, outline, crease and x-ray are toggles and are
 	# remembered in editor settings, so they are set to a wanted state.
 	var sequence: Array[Array] = [
 		["studio", [0, 2], true],
@@ -55,10 +55,12 @@ func _run() -> void:
 			popup.id_pressed.emit(id)
 		_set_checked(popup, 4, step[2] as bool)
 		_set_checked(popup, 5, step[2] as bool)
+		_set_checked(popup, 9, step[2] as bool)
 		await _settle()
 		_shot(step[0] as String)
 	_set_checked(popup, 4, true)
 	_set_checked(popup, 5, true)
+	_set_checked(popup, 9, true)
 	_set_checked(popup, 8, true)
 	await _settle()
 	_shot("studio_xray")

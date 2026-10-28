@@ -22,6 +22,11 @@ var base_color: Color = Color(0.8, 0.8, 0.8)
 var background_color: Color = Color(0.24, 0.24, 0.24)
 var cavity: float = 1.0
 var outline: float = 1.0
+## Line width in pixels of the viewport's output; scaled to the internal
+## render size before use, and never below one pixel there.
+var outline_width: float = 1.0
+## Also line the sharp creases within a surface, not only its silhouette.
+var crease: bool = false
 var matcap: Texture2D
 ## Opacity of the front surface in x-ray; 0 is off.
 var xray: float = 0.0
@@ -98,8 +103,8 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData) ->
 	push_constant[11] = outline
 	push_constant[12] = 1.0 if projection.is_orthogonal() else 0.0
 	push_constant[13] = xray
-	push_constant[14] = 0.0
-	push_constant[15] = 0.0
+	push_constant[14] = outline_width * _internal_scale(buffers)
+	push_constant[15] = 1.0 if crease else 0.0
 	push_constant[16] = background_color.r
 	push_constant[17] = background_color.g
 	push_constant[18] = background_color.b
@@ -189,6 +194,15 @@ func _xray_rd_texture() -> RID:
 		if rd_texture.is_valid():
 			return rd_texture
 	return RenderingServer.texture_get_rd_texture(RenderingServer.get_white_texture(), false)
+
+
+## Internal render pixels per output pixel, under 1 when the 3D scale is.
+static func _internal_scale(buffers: RenderSceneBuffersRD) -> float:
+	var internal := buffers.get_internal_size()
+	var target := buffers.get_target_size()
+	if target.x <= 0:
+		return 1.0
+	return float(internal.x) / float(target.x)
 
 
 static func _image_uniform(image: RID) -> RDUniform:

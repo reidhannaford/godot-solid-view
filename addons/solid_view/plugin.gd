@@ -11,7 +11,7 @@ const SolidViewEffect := preload("solid_view_effect.gd")
 const SHORTCUT_PATH := "solid_view/toggle"
 const XRAY_SHORTCUT_PATH := "solid_view/toggle_xray"
 
-enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, DEFAULT_MATCAP, XRAY }
+enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, DEFAULT_MATCAP, XRAY, CREASE }
 
 var _controller: SolidViewController
 var _settings: SolidViewSettings
@@ -54,9 +54,15 @@ func _enter_tree() -> void:
 	_update_tooltip()
 	add_control_to_container(CONTAINER_SPATIAL_EDITOR_MENU, _bar)
 	set_input_event_forwarding_always_enabled()
+	# Editor Settings > Solid View edits (the outline width, the x-ray
+	# opacity) take effect at once.
+	EditorInterface.get_editor_settings().settings_changed.connect(_on_settings_changed)
 
 
 func _exit_tree() -> void:
+	var editor_settings := EditorInterface.get_editor_settings()
+	if editor_settings.settings_changed.is_connected(_on_settings_changed):
+		editor_settings.settings_changed.disconnect(_on_settings_changed)
 	if _controller != null:
 		_controller.active = false
 	if _bar != null:
@@ -111,10 +117,22 @@ func _apply_settings() -> void:
 	effect.shading = _settings.shading as SolidViewEffect.Shading
 	effect.cavity = 1.0 if _settings.cavity else 0.0
 	effect.outline = 1.0 if _settings.outline else 0.0
+	# The width is in points; the viewport has editor-scale pixels per point.
+	effect.outline_width = _settings.outline_width * EditorInterface.get_editor_scale()
+	effect.crease = _settings.crease
 	effect.matcap = _settings.load_matcap()
 	_controller.texture_color = _settings.texture_color
 	_controller.xray = _settings.xray
 	_controller.xray_alpha = _settings.xray_alpha
+
+
+func _on_settings_changed() -> void:
+	if _settings == null or _controller == null or _menu == null:
+		return
+	_settings.load()
+	_apply_settings()
+	_sync_menu()
+	_update_tooltip()
 
 
 func _on_toggled(on: bool) -> void:
@@ -131,6 +149,7 @@ func _build_menu() -> void:
 	popup.add_separator()
 	popup.add_check_item("Cavity", Item.CAVITY)
 	popup.add_check_item("Outline", Item.OUTLINE)
+	popup.add_check_item("Crease Lines", Item.CREASE)
 	popup.add_separator()
 	popup.add_check_item("X-Ray", Item.XRAY)
 	popup.add_separator()
@@ -147,6 +166,8 @@ func _sync_menu() -> void:
 	popup.set_item_checked(popup.get_item_index(Item.TEXTURE), _settings.texture_color)
 	popup.set_item_checked(popup.get_item_index(Item.CAVITY), _settings.cavity)
 	popup.set_item_checked(popup.get_item_index(Item.OUTLINE), _settings.outline)
+	popup.set_item_checked(popup.get_item_index(Item.CREASE), _settings.crease)
+	popup.set_item_disabled(popup.get_item_index(Item.CREASE), not _settings.outline)
 	popup.set_item_checked(popup.get_item_index(Item.XRAY), _settings.xray)
 	popup.set_item_disabled(popup.get_item_index(Item.DEFAULT_MATCAP), _settings.matcap_path == SolidViewSettings.DEFAULT_MATCAP)
 
@@ -165,6 +186,8 @@ func _on_menu_pressed(id: int) -> void:
 			_settings.cavity = not _settings.cavity
 		Item.OUTLINE:
 			_settings.outline = not _settings.outline
+		Item.CREASE:
+			_settings.crease = not _settings.crease
 		Item.XRAY:
 			_settings.xray = not _settings.xray
 		Item.CHOOSE_MATCAP:

@@ -185,6 +185,8 @@ func _copy_options(own_effect: SolidViewEffect) -> void:
 	own_effect.background_color = effect.background_color
 	own_effect.cavity = effect.cavity
 	own_effect.outline = effect.outline
+	own_effect.outline_width = effect.outline_width
+	own_effect.crease = effect.crease
 	own_effect.matcap = effect.matcap
 
 

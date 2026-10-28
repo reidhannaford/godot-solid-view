@@ -73,6 +73,7 @@ func _run() -> void:
 			_check(ghost_camera.environment == controller.environment, "the hidden camera has the neutral environment")
 		var own_effect := camera.compositor.compositor_effects[0]
 		_check(own_effect.xray > 0.0, "the effect gets the x-ray opacity")
+		_check(own_effect.outline_width >= 1.0, "the effect gets an outline width of at least a pixel")
 		_check(own_effect.xray_texture == RenderingServer.viewport_get_texture(ghost.get_viewport_rid()), "the effect gets the hidden viewport's texture")
 	controller.after_draw()
 	controller.xray = false

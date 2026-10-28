@@ -26,10 +26,14 @@ layout(push_constant, std430) uniform Params {
 	float outline; // Silhouette darkening, 0 off.
 	float orthographic;
 	float xray; // Opacity of the front surface in x-ray, 0 off.
-	float reserved0;
-	float reserved1;
+	float outline_width; // In pixels of this buffer, 1 or more.
+	float crease; // 1 also outlines sharp creases within a surface.
 	vec4 background_color; // Linear rgb; a unused.
 } params;
+
+const vec3 LINE_COLOR = vec3(0.015);
+// Neighbouring normals further apart than this are a crease: 45 degrees.
+const float CREASE_COS = 0.7071;
 
 ivec2 size = ivec2(params.raster_size);
 
@@ -115,26 +119,78 @@ float curvature(ivec2 uv, float dist) {
 	return clamp(diff * strength, 0.0, 0.6);
 }
 
-// How strongly this pixel sits on the near side of a depth discontinuity.
-// 1/distance is linear across a flat surface in perspective, so a plane at
-// any angle scores 0; only a jump to something farther (or to the sky) counts.
-float silhouette(ivec2 uv, float dist) {
+int outline_width() {
+	return max(int(round(params.outline_width)), 1);
+}
+
+// A depth measure that is linear across a flat surface in screen space:
+// 1/distance in perspective (so a plane at any angle has zero second
+// difference), distance itself in orthographic. Pixels with no geometry
+// count as infinitely far.
+float depth_measure(float depth) {
 	bool ortho = params.orthographic > 0.5;
-	float q_c = ortho ? -dist : 1.0 / dist;
+	if (!has_geometry(depth)) {
+		return ortho ? -params.z_far : 0.0;
+	}
+	float dist = view_distance(depth);
+	return ortho ? -dist : 1.0 / dist;
+}
+
+// How big a change in the depth measure counts as a jump to another surface.
+float jump_threshold(float q_c, float dist) {
+	return params.orthographic > 0.5 ? 0.005 * max(dist, 0.1) : 0.03 * q_c;
+}
+
+// How strongly this pixel sits on the near side of a depth discontinuity,
+// within outline_width pixels of it. Only a jump to something farther (or to
+// the sky) counts: the second difference of the depth measure is zero across
+// any flat surface, whatever its slope.
+float silhouette(ivec2 uv, float dist) {
+	float q_c = depth_measure(raw_depth(uv));
+	float threshold = jump_threshold(q_c, dist);
 	float edge = 0.0;
 	ivec2 dirs[2] = ivec2[2](ivec2(1, 0), ivec2(0, 1));
-	for (int i = 0; i < 2; i++) {
-		float d_a = raw_depth(uv + dirs[i]);
-		float d_b = raw_depth(uv - dirs[i]);
-		float q_a = has_geometry(d_a) ? (ortho ? -view_distance(d_a) : 1.0 / view_distance(d_a)) : (ortho ? -params.z_far : 0.0);
-		float q_b = has_geometry(d_b) ? (ortho ? -view_distance(d_b) : 1.0 / view_distance(d_b)) : (ortho ? -params.z_far : 0.0);
-		// Positive only where a neighbour drops away farther than the slope
-		// through the opposite neighbour predicts.
-		edge = max(edge, (q_c - q_a) - (q_b - q_c));
-		edge = max(edge, (q_c - q_b) - (q_a - q_c));
+	int width = outline_width();
+	for (int k = 1; k <= width; k++) {
+		for (int i = 0; i < 2; i++) {
+			ivec2 step = dirs[i] * k;
+			float q_a = depth_measure(raw_depth(uv + step));
+			float q_b = depth_measure(raw_depth(uv - step));
+			// Positive only where a neighbour drops away farther than the
+			// slope through the opposite neighbour predicts.
+			edge = max(edge, (q_c - q_a) - (q_b - q_c));
+			edge = max(edge, (q_c - q_b) - (q_a - q_c));
+		}
 	}
-	float threshold = ortho ? 0.005 * max(dist, 0.1) : 0.03 * q_c;
 	return clamp((edge - threshold) / threshold, 0.0, 1.0);
+}
+
+// A line on one side of a sharp crease: where a neighbour to the right or
+// below, on the same surface, faces more than CREASE_COS away. Checked in
+// two directions only so the line is outline_width wide, like the silhouette,
+// instead of straddling the crease at twice that.
+float crease(ivec2 uv, vec3 n_c, float dist) {
+	float q_c = depth_measure(raw_depth(uv));
+	float threshold = jump_threshold(q_c, dist);
+	ivec2 dirs[2] = ivec2[2](ivec2(1, 0), ivec2(0, 1));
+	int width = outline_width();
+	for (int k = 1; k <= width; k++) {
+		for (int i = 0; i < 2; i++) {
+			ivec2 p = uv + dirs[i] * k;
+			float depth = raw_depth(p);
+			if (!has_geometry(depth)) {
+				continue;
+			}
+			// Across a depth jump it's a silhouette, not a crease.
+			if (abs(depth_measure(depth) - q_c) > threshold * float(k)) {
+				continue;
+			}
+			if (dot(n_c, load_normal(p)) < CREASE_COS) {
+				return 1.0;
+			}
+		}
+	}
+	return 0.0;
 }
 
 // Surfaces under this pixel, the front one included, from the overdraw
@@ -146,7 +202,7 @@ float xray_layers(vec2 uv_norm) {
 // Blender's X-ray: the front surface at params.xray opacity over whatever is
 // behind it, over the background. Only the count of hidden surfaces is
 // known, so they are drawn as a flat ghost, each at the same opacity, and
-// with the outline on, a faint line where that count changes marks their
+// with the outline on, a line where that count changes marks their
 // silhouettes.
 vec3 xray_blend(ivec2 uv, vec3 front) {
 	vec2 texel = 1.0 / params.raster_size;
@@ -160,11 +216,16 @@ vec3 xray_blend(ivec2 uv, vec3 front) {
 	vec3 color = mix(behind, front, a);
 	if (params.outline > 0.0) {
 		float edge = 0.0;
-		edge = max(edge, abs(xray_layers(uv_norm + vec2(texel.x, 0.0)) - layers));
-		edge = max(edge, abs(xray_layers(uv_norm - vec2(texel.x, 0.0)) - layers));
-		edge = max(edge, abs(xray_layers(uv_norm + vec2(0.0, texel.y)) - layers));
-		edge = max(edge, abs(xray_layers(uv_norm - vec2(0.0, texel.y)) - layers));
-		color = mix(color, vec3(0.015), smoothstep(0.3, 0.8, edge) * 0.5 * params.outline);
+		int width = outline_width();
+		for (int k = 1; k <= width; k++) {
+			vec2 dx = vec2(texel.x * float(k), 0.0);
+			vec2 dy = vec2(0.0, texel.y * float(k));
+			edge = max(edge, abs(xray_layers(uv_norm + dx) - layers));
+			edge = max(edge, abs(xray_layers(uv_norm - dx) - layers));
+			edge = max(edge, abs(xray_layers(uv_norm + dy) - layers));
+			edge = max(edge, abs(xray_layers(uv_norm - dy) - layers));
+		}
+		color = mix(color, LINE_COLOR, smoothstep(0.3, 0.8, edge) * 0.5 * params.outline);
 	}
 	return color;
 }
@@ -193,7 +254,11 @@ void main() {
 		color *= 1.0 + curvature(uv, dist);
 	}
 	if (params.outline > 0.0) {
-		color = mix(color, vec3(0.015), silhouette(uv, dist) * params.outline);
+		float line = silhouette(uv, dist);
+		if (params.crease > 0.5) {
+			line = max(line, crease(uv, n, dist));
+		}
+		color = mix(color, LINE_COLOR, line * params.outline);
 	}
 	if (params.xray > 0.0) {
 		color = xray_blend(uv, color);
