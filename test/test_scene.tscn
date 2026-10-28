@@ -129,6 +129,18 @@ transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, -3, 2, 1)
 mesh = SubResource("sphere")
 surface_material_override/0 = SubResource("mat_emissive")
 
+[node name="HiddenCrate" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.924, 0, 0.383, 0, 1, 0, -0.383, 0, 0.924, -1, 0.5, -5.5)
+mesh = SubResource("box")
+
+[node name="HiddenBall" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.6, -5.5)
+mesh = SubResource("sphere")
+
+[node name="CrateContents" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, -2, 0.5, 0)
+mesh = SubResource("sphere")
+
 [node name="Glass" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.6, 3)
 mesh = SubResource("sphere")

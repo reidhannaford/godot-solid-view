@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **X-ray**: see through the front surfaces to the geometry behind them, as Blender's X-ray does. In the options menu, Alt+Shift+Z by default (`solid_view/toggle_xray`), opacity under `solid_view/xray_alpha` in Editor Settings. Hidden geometry comes from a hidden per-viewport overdraw render, so it shows as a ghost with silhouette lines rather than shaded.
+- The editor cameras also get neutral camera attributes during the draw, so a scene's exposure or auto-exposure no longer changes the solid shading.
+
 ## 1.0.2, 2026-10-27
 
 - Fixed: a scene saved while Solid was on reopened with the editor's View Environment off and a grey background. The addon now only puts its environment, compositor and debug draw on the editor cameras while a frame is being drawn, so the editor's own view state is what gets saved. Scenes already affected: tick View Environment in the viewport's View menu once and save.

@@ -11,16 +11,23 @@ enum Shading { STUDIO, MATCAP }
 
 const SHADER_FILE_NAME := "solid_view.glsl"
 const WORKGROUP := 8
-const PUSH_CONSTANT_FLOATS := 16
+const PUSH_CONSTANT_FLOATS := 20
 
 var shading: Shading = Shading.STUDIO
 ## Multiply the shading by the albedo in the colour buffer. Only meaningful
 ## while the viewport draws unshaded, which the controller arranges.
 var texture_color: bool = false
 var base_color: Color = Color(0.8, 0.8, 0.8)
+## What the sky is cleared to; what x-ray shows through the geometry.
+var background_color: Color = Color(0.24, 0.24, 0.24)
 var cavity: float = 1.0
 var outline: float = 1.0
 var matcap: Texture2D
+## Opacity of the front surface in x-ray; 0 is off.
+var xray: float = 0.0
+## The overdraw render of the same view, as a RenderingServer texture: each
+## surface under a pixel adds 0.08 of green. Only read while [member xray] is on.
+var xray_texture: RID
 
 var _rd: RenderingDevice
 var _shader_file: RDShaderFile
@@ -90,8 +97,16 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData) ->
 	push_constant[10] = cavity
 	push_constant[11] = outline
 	push_constant[12] = 1.0 if projection.is_orthogonal() else 0.0
+	push_constant[13] = xray
+	push_constant[14] = 0.0
+	push_constant[15] = 0.0
+	push_constant[16] = background_color.r
+	push_constant[17] = background_color.g
+	push_constant[18] = background_color.b
+	push_constant[19] = 1.0
 
 	var matcap_rid := _matcap_rd_texture()
+	var xray_rid := _xray_rd_texture()
 	var groups_x := (size.x - 1) / WORKGROUP + 1
 	var groups_y := (size.y - 1) / WORKGROUP + 1
 
@@ -100,6 +115,7 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData) ->
 		var depth_set := UniformSetCacheRD.get_cache(_shader, 1, [_sampler_uniform(_nearest_sampler, buffers.get_depth_layer(view))])
 		var normal_set := UniformSetCacheRD.get_cache(_shader, 2, [_sampler_uniform(_nearest_sampler, buffers.get_texture(&"forward_clustered", &"normal_roughness"))])
 		var matcap_set := UniformSetCacheRD.get_cache(_shader, 3, [_sampler_uniform(_linear_sampler, matcap_rid)])
+		var xray_set := UniformSetCacheRD.get_cache(_shader, 4, [_sampler_uniform(_linear_sampler, xray_rid)])
 
 		var compute_list := _rd.compute_list_begin()
 		_rd.compute_list_bind_compute_pipeline(compute_list, _pipeline)
@@ -107,6 +123,7 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData) ->
 		_rd.compute_list_bind_uniform_set(compute_list, depth_set, 1)
 		_rd.compute_list_bind_uniform_set(compute_list, normal_set, 2)
 		_rd.compute_list_bind_uniform_set(compute_list, matcap_set, 3)
+		_rd.compute_list_bind_uniform_set(compute_list, xray_set, 4)
 		_rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), PUSH_CONSTANT_FLOATS * 4)
 		_rd.compute_list_dispatch(compute_list, groups_x, groups_y, 1)
 		_rd.compute_list_end()
@@ -161,6 +178,17 @@ func _matcap_rd_texture() -> RID:
 	if not rd_texture.is_valid():
 		rd_texture = RenderingServer.texture_get_rd_texture(texture_rid, false)
 	return rd_texture
+
+
+## The overdraw render as a RenderingDevice texture, read as stored: the
+## hidden viewport renders in HDR, so its values are linear. A white pixel
+## stands in while x-ray is off, when the shader never reads it.
+func _xray_rd_texture() -> RID:
+	if xray > 0.0 and xray_texture.is_valid():
+		var rd_texture := RenderingServer.texture_get_rd_texture(xray_texture, false)
+		if rd_texture.is_valid():
+			return rd_texture
+	return RenderingServer.texture_get_rd_texture(RenderingServer.get_white_texture(), false)
 
 
 static func _image_uniform(image: RID) -> RDUniform:

@@ -1,15 +1,17 @@
 @tool
 extends EditorPlugin
 ## Adds a Solid toggle and its options menu to the 3D editor toolbar, and a
-## shortcut (solid_view/toggle, Alt+Z by default) to flip it.
+## shortcut (solid_view/toggle, Alt+Z by default) to flip it, and another
+## (solid_view/toggle_xray, Alt+Shift+Z) for x-ray.
 
 const SolidViewController := preload("solid_view_controller.gd")
 const SolidViewSettings := preload("solid_view_settings.gd")
 const SolidViewEffect := preload("solid_view_effect.gd")
 
 const SHORTCUT_PATH := "solid_view/toggle"
+const XRAY_SHORTCUT_PATH := "solid_view/toggle_xray"
 
-enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, DEFAULT_MATCAP }
+enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, DEFAULT_MATCAP, XRAY }
 
 var _controller: SolidViewController
 var _settings: SolidViewSettings
@@ -20,7 +22,7 @@ var _file_dialog: EditorFileDialog
 
 
 func _enter_tree() -> void:
-	_register_shortcut()
+	_register_shortcuts()
 	_settings = SolidViewSettings.new()
 	_settings.load()
 	_controller = SolidViewController.new()
@@ -77,20 +79,31 @@ func _forward_3d_gui_input(_viewport_camera: Camera3D, event: InputEvent) -> int
 	if settings.has_shortcut(SHORTCUT_PATH) and settings.get_shortcut(SHORTCUT_PATH).matches_event(event):
 		_toggle.button_pressed = not _toggle.button_pressed
 		return AFTER_GUI_INPUT_STOP
+	if settings.has_shortcut(XRAY_SHORTCUT_PATH) and settings.get_shortcut(XRAY_SHORTCUT_PATH).matches_event(event):
+		_on_menu_pressed(Item.XRAY)
+		if _settings.xray and not _toggle.button_pressed:
+			_toggle.button_pressed = true
+		return AFTER_GUI_INPUT_STOP
 	return AFTER_GUI_INPUT_PASS
 
 
-func _register_shortcut() -> void:
+func _register_shortcuts() -> void:
+	_register_shortcut(SHORTCUT_PATH, "Toggle Solid View", false)
+	_register_shortcut(XRAY_SHORTCUT_PATH, "Toggle Solid View X-Ray", true)
+
+
+func _register_shortcut(path: String, label: String, shift: bool) -> void:
 	var settings := EditorInterface.get_editor_settings()
-	if settings.has_shortcut(SHORTCUT_PATH):
+	if settings.has_shortcut(path):
 		return
 	var key := InputEventKey.new()
 	key.keycode = KEY_Z
 	key.alt_pressed = true
+	key.shift_pressed = shift
 	var shortcut := Shortcut.new()
-	shortcut.resource_name = "Toggle Solid View"
+	shortcut.resource_name = label
 	shortcut.events = [key]
-	settings.add_shortcut(SHORTCUT_PATH, shortcut)
+	settings.add_shortcut(path, shortcut)
 
 
 func _apply_settings() -> void:
@@ -100,6 +113,8 @@ func _apply_settings() -> void:
 	effect.outline = 1.0 if _settings.outline else 0.0
 	effect.matcap = _settings.load_matcap()
 	_controller.texture_color = _settings.texture_color
+	_controller.xray = _settings.xray
+	_controller.xray_alpha = _settings.xray_alpha
 
 
 func _on_toggled(on: bool) -> void:
@@ -117,6 +132,8 @@ func _build_menu() -> void:
 	popup.add_check_item("Cavity", Item.CAVITY)
 	popup.add_check_item("Outline", Item.OUTLINE)
 	popup.add_separator()
+	popup.add_check_item("X-Ray", Item.XRAY)
+	popup.add_separator()
 	popup.add_item("Choose MatCap…", Item.CHOOSE_MATCAP)
 	popup.add_item("Use Bundled MatCap", Item.DEFAULT_MATCAP)
 
@@ -130,6 +147,7 @@ func _sync_menu() -> void:
 	popup.set_item_checked(popup.get_item_index(Item.TEXTURE), _settings.texture_color)
 	popup.set_item_checked(popup.get_item_index(Item.CAVITY), _settings.cavity)
 	popup.set_item_checked(popup.get_item_index(Item.OUTLINE), _settings.outline)
+	popup.set_item_checked(popup.get_item_index(Item.XRAY), _settings.xray)
 	popup.set_item_disabled(popup.get_item_index(Item.DEFAULT_MATCAP), _settings.matcap_path == SolidViewSettings.DEFAULT_MATCAP)
 
 
@@ -147,6 +165,8 @@ func _on_menu_pressed(id: int) -> void:
 			_settings.cavity = not _settings.cavity
 		Item.OUTLINE:
 			_settings.outline = not _settings.outline
+		Item.XRAY:
+			_settings.xray = not _settings.xray
 		Item.CHOOSE_MATCAP:
 			_choose_matcap()
 			return
@@ -187,4 +207,7 @@ func _update_tooltip() -> void:
 	if settings.has_shortcut(SHORTCUT_PATH):
 		shortcut_text = " (%s)" % settings.get_shortcut(SHORTCUT_PATH).get_as_text()
 	var mode := "MatCap: %s" % _settings.matcap_path.get_file() if _settings.shading == SolidViewEffect.Shading.MATCAP else "Studio lighting"
-	_toggle.tooltip_text = "Solid View%s\n%s, %s colour." % [shortcut_text, mode, "texture" if _settings.texture_color else "flat"]
+	var xray_text := ""
+	if settings.has_shortcut(XRAY_SHORTCUT_PATH):
+		xray_text = "\nX-ray: %s (%s)." % ["on" if _settings.xray else "off", settings.get_shortcut(XRAY_SHORTCUT_PATH).get_as_text()]
+	_toggle.tooltip_text = "Solid View%s\n%s, %s colour.%s" % [shortcut_text, mode, "texture" if _settings.texture_color else "flat", xray_text]

@@ -7,6 +7,8 @@ A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender
 | ![The test scene under its own red fog and glow](docs/images/before.png) | ![The same view as grey clay under a fixed studio light](docs/images/studio.png) |
 | **Solid, matcap** | **Solid, studio with texture colour** |
 | ![The same view shaded by the bundled clay matcap](docs/images/matcap.png) | ![The same view with each surface's own albedo](docs/images/studio_texture.png) |
+| **Solid, x-ray** | |
+| ![The same view with the geometry behind the wall and inside the crate showing through](docs/images/studio_xray.png) | |
 
 **Status: 1.0.2.** Forward+ only. In daily use on one game project. Issues and pull requests are welcome; please say which Godot version and platform you're on.
 
@@ -18,6 +20,7 @@ A Godot 4.7+ editor addon that gives the 3D viewport a shading mode like Blender
 - **Flat or texture colour**: a plain grey, or each surface's own albedo (the viewport draws unshaded underneath, so textures show but scene lights don't).
 - **Cavity**: screen-space ridges brighten and valleys darken, as Blender's *Screen* cavity does.
 - **Outline**: a dark line where a surface drops away to something farther, or to the sky.
+- **X-ray**: see through the front surfaces to what is behind them, as Blender's X-ray does. **Alt+Shift+Z** by default (`solid_view/toggle_xray`); the front surface's opacity is `solid_view/xray_alpha` in Editor Settings. Alt+click in the viewport lists everything under the cursor, so hidden objects can be picked.
 - The editor's grid, gizmos, selection outline and any transparent objects still draw on top, as they would normally.
 - Nothing in the scene is touched. The addon only sets the editor cameras' environment and compositor and the editor viewports' debug draw, and only while a frame is being drawn; MSAA is off on the editor viewports for as long as the mode is on. Everything is put back when it's switched off or disabled.
 
@@ -41,6 +44,7 @@ The menu next to the toggle:
 | Flat Colour / Texture Colour | A plain grey, or each surface's albedo. |
 | Cavity | Ridges and valleys from the normals. |
 | Outline | Dark edge where depth jumps. |
+| X-Ray | Front surfaces half transparent, geometry behind them ghosted. |
 | Choose MatCap… | Pick an image from the project; switches to MatCap. |
 | Use Bundled MatCap | Back to the clay matcap. |
 
@@ -52,11 +56,14 @@ A `CompositorEffect` on each editor camera runs a compute shader after the opaqu
 
 MSAA is switched off on the editor viewports while the mode is on: with MSAA, the colour buffer is only resolved after the transparent pass, so a post-opaque write would be thrown away. TAA and FXAA still apply.
 
+X-ray needs what the opaque pass throws away: the geometry behind the front surface. For it, each editor viewport gets a hidden child viewport that renders the same world from a copy of the editor camera in the editor's Overdraw debug draw, which draws every surface regardless of depth as a fixed amount of colour. That gives the number of surfaces under each pixel, and the shader blends the front shading over that many ghosted layers over the background, with a faint line wherever the count changes: the silhouettes of what is hidden. A child viewport renders before its parent, so the count is from the same frame.
+
 ## Limitations
 
 - Forward+ only. Mobile and Compatibility have no normal buffer for a compositor effect to read.
 - Objects whose material skips the depth prepass (transparent, `depth_draw_never`) keep their own look.
 - The outline is depth-based, not object-based: two touching objects at the same depth have no line between them.
+- X-ray knows how many surfaces are behind a pixel, not what they look like, so hidden geometry is a flat ghost with silhouette lines rather than shaded as Blender draws it. It costs a second, unshaded render of the scene per editor viewport.
 - The View menu's **View Environment** toggle has no visible effect while Solid is on; its setting is kept and comes back when Solid is off.
 
 ## Licence

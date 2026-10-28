@@ -13,6 +13,7 @@ layout(rgba16f, set = 0, binding = 0) uniform image2D color_image;
 layout(set = 1, binding = 0) uniform sampler2D depth_texture;
 layout(set = 2, binding = 0) uniform sampler2D normal_roughness_texture;
 layout(set = 3, binding = 0) uniform sampler2D matcap_texture;
+layout(set = 4, binding = 0) uniform sampler2D xray_texture;
 
 layout(push_constant, std430) uniform Params {
 	vec2 raster_size;
@@ -24,9 +25,10 @@ layout(push_constant, std430) uniform Params {
 	float cavity; // Ridge and valley strength, 0 off.
 	float outline; // Silhouette darkening, 0 off.
 	float orthographic;
+	float xray; // Opacity of the front surface in x-ray, 0 off.
 	float reserved0;
 	float reserved1;
-	float reserved2;
+	vec4 background_color; // Linear rgb; a unused.
 } params;
 
 ivec2 size = ivec2(params.raster_size);
@@ -135,6 +137,38 @@ float silhouette(ivec2 uv, float dist) {
 	return clamp((edge - threshold) / threshold, 0.0, 1.0);
 }
 
+// Surfaces under this pixel, the front one included, from the overdraw
+// render of the same view: 0.08 of green per surface on black.
+float xray_layers(vec2 uv_norm) {
+	return texture(xray_texture, uv_norm).g / 0.08;
+}
+
+// Blender's X-ray: the front surface at params.xray opacity over whatever is
+// behind it, over the background. Only the count of hidden surfaces is
+// known, so they are drawn as a flat ghost, each at the same opacity, and
+// with the outline on, a faint line where that count changes marks their
+// silhouettes.
+vec3 xray_blend(ivec2 uv, vec3 front) {
+	vec2 texel = 1.0 / params.raster_size;
+	vec2 uv_norm = (vec2(uv) + 0.5) * texel;
+	float layers = max(xray_layers(uv_norm), 1.0);
+	float hidden = layers - 1.0;
+	float a = params.xray;
+	float through = pow(1.0 - a, hidden);
+	vec3 ghost = params.base_color.rgb * 0.55;
+	vec3 behind = mix(ghost, params.background_color.rgb, through);
+	vec3 color = mix(behind, front, a);
+	if (params.outline > 0.0) {
+		float edge = 0.0;
+		edge = max(edge, abs(xray_layers(uv_norm + vec2(texel.x, 0.0)) - layers));
+		edge = max(edge, abs(xray_layers(uv_norm - vec2(texel.x, 0.0)) - layers));
+		edge = max(edge, abs(xray_layers(uv_norm + vec2(0.0, texel.y)) - layers));
+		edge = max(edge, abs(xray_layers(uv_norm - vec2(0.0, texel.y)) - layers));
+		color = mix(color, vec3(0.015), smoothstep(0.3, 0.8, edge) * 0.5 * params.outline);
+	}
+	return color;
+}
+
 void main() {
 	ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
 	if (uv.x >= size.x || uv.y >= size.y) {
@@ -160,6 +194,9 @@ void main() {
 	}
 	if (params.outline > 0.0) {
 		color = mix(color, vec3(0.015), silhouette(uv, dist) * params.outline);
+	}
+	if (params.xray > 0.0) {
+		color = xray_blend(uv, color);
 	}
 
 	imageStore(color_image, uv, vec4(color, 1.0));

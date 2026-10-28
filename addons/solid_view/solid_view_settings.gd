@@ -11,6 +11,8 @@ var shading: int = 0 # SolidViewEffect.Shading
 var texture_color: bool = false
 var cavity: bool = true
 var outline: bool = true
+var xray: bool = false
+var xray_alpha: float = 0.5
 var matcap_path: String = DEFAULT_MATCAP
 
 
@@ -20,6 +22,8 @@ func load() -> void:
 	texture_color = _read(settings, "texture_color", texture_color, TYPE_BOOL)
 	cavity = _read(settings, "cavity", cavity, TYPE_BOOL)
 	outline = _read(settings, "outline", outline, TYPE_BOOL)
+	xray = _read(settings, "xray", xray, TYPE_BOOL)
+	xray_alpha = _read(settings, "xray_alpha", xray_alpha, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.05,0.95,0.05")
 	matcap_path = _read(settings, "matcap", matcap_path, TYPE_STRING, PROPERTY_HINT_FILE, "*.png,*.jpg,*.jpeg,*.exr,*.webp")
 
 
@@ -29,6 +33,8 @@ func save() -> void:
 	settings.set_setting(PREFIX + "texture_color", texture_color)
 	settings.set_setting(PREFIX + "cavity", cavity)
 	settings.set_setting(PREFIX + "outline", outline)
+	settings.set_setting(PREFIX + "xray", xray)
+	settings.set_setting(PREFIX + "xray_alpha", xray_alpha)
 	settings.set_setting(PREFIX + "matcap", matcap_path)
 
 

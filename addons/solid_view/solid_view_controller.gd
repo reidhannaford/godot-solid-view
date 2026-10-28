@@ -3,8 +3,9 @@ extends RefCounted
 ## Puts Solid View on the editor's 3D viewports and takes it off again.
 ##
 ## While active, each editor camera draws with a neutral environment (a flat
-## background, no fog, glow, ambient or tonemapping) and a compositor carrying
-## the effect, and each viewport draws unshaded when the texture colour is
+## background, no fog, glow, ambient or tonemapping), neutral camera
+## attributes (no exposure or auto-exposure) and a compositor carrying the
+## effect, and each viewport draws unshaded when the texture colour is
 ## wanted. Those are only on the camera and viewport for the duration of a
 ## draw: [method before_draw] puts them on from
 ## [signal RenderingServer.frame_pre_draw] and [method after_draw] puts the
@@ -17,15 +18,28 @@ extends RefCounted
 ## MSAA is the exception: changing it rebuilds the render buffers, so it stays
 ## off for as long as the mode is on, and is re-asserted before every draw
 ## because the editor puts the project's value back on a settings change.
+##
+## X-ray needs what the opaque pass throws away, the geometry behind the
+## front surface. For it, each editor viewport gets a hidden child
+## SubViewport rendering the same world from a copy of its camera in the
+## editor's Overdraw debug draw, which draws every surface, regardless of
+## depth, as a fixed amount of green on black. A child viewport renders before
+## its parent in the same frame, so the count of surfaces under each pixel is
+## current when the effect blends it in.
 
 const SolidViewEffect := preload("solid_view_effect.gd")
 const VIEWPORT_COUNT := 4
 ## Blender's default viewport grey, as a display colour.
 const BACKGROUND := Color(0.24, 0.24, 0.24)
+## The editor cameras see the game's 20 render layers plus their own gizmo,
+## grid and tool layers above; the x-ray camera only wants the game's.
+const GAME_LAYERS := (1 << 20) - 1
+const XRAY_VIEWPORT_NAME := "SolidViewXray"
 
+## The options, read by every viewport's own effect before each draw.
 var effect: SolidViewEffect
 var environment: Environment
-var compositor: Compositor
+var attributes: CameraAttributesPractical
 var active: bool = false:
 	set(value):
 		if value != active:
@@ -39,9 +53,15 @@ var texture_color: bool = false:
 	set(value):
 		texture_color = value
 		effect.texture_color = value
+## See through the front surfaces to the geometry behind them.
+var xray: bool = false
+## How opaque the front surface is in x-ray.
+var xray_alpha: float = 0.5
 
-## Per viewport taken over: its camera, the MSAA it had, and during a draw
-## the environment, compositor and debug draw it had before the draw.
+## Per viewport taken over: its camera, its own effect and compositor, the
+## MSAA it had, during a draw the environment, attributes, compositor and
+## debug draw it had before the draw, and in x-ray its hidden viewport and
+## camera.
 var _entries: Array[Dictionary] = []
 ## True between [method before_draw] and [method after_draw].
 var _drawing: bool = false
@@ -49,14 +69,14 @@ var _drawing: bool = false
 
 func _init() -> void:
 	effect = SolidViewEffect.new()
-	compositor = Compositor.new()
-	compositor.compositor_effects = [effect]
+	effect.background_color = BACKGROUND
 	environment = Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = BACKGROUND
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_DISABLED
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	attributes = CameraAttributesPractical.new()
 
 
 func _notification(what: int) -> void:
@@ -75,11 +95,24 @@ func before_draw() -> void:
 		var viewport := entry["viewport"] as SubViewport
 		if not is_instance_valid(camera) or not is_instance_valid(viewport):
 			continue
+		var own_effect := entry["effect"] as SolidViewEffect
+		_copy_options(own_effect)
+		if xray:
+			_ensure_xray(entry)
+			_sync_xray(entry)
+			own_effect.xray = xray_alpha
+			own_effect.xray_texture = RenderingServer.viewport_get_texture((entry["xray_viewport"] as SubViewport).get_viewport_rid())
+		else:
+			_free_xray(entry)
+			own_effect.xray = 0.0
+			own_effect.xray_texture = RID()
 		entry["environment"] = camera.environment
+		entry["attributes"] = camera.attributes
 		entry["compositor"] = camera.compositor
 		entry["debug_draw"] = viewport.debug_draw
 		camera.environment = environment
-		camera.compositor = compositor
+		camera.attributes = attributes
+		camera.compositor = entry["own_compositor"] as Compositor
 		if viewport.msaa_3d != Viewport.MSAA_DISABLED:
 			viewport.msaa_3d = Viewport.MSAA_DISABLED
 		viewport.debug_draw = Viewport.DEBUG_DRAW_UNSHADED if texture_color else Viewport.DEBUG_DRAW_DISABLED
@@ -97,7 +130,9 @@ func after_draw() -> void:
 		if is_instance_valid(camera):
 			if camera.environment == environment:
 				camera.environment = entry.get("environment") as Environment
-			if camera.compositor == compositor:
+			if camera.attributes == attributes:
+				camera.attributes = entry.get("attributes") as CameraAttributes
+			if camera.compositor == entry["own_compositor"]:
 				camera.compositor = entry.get("compositor") as Compositor
 		if is_instance_valid(viewport) and entry.has("debug_draw"):
 			viewport.debug_draw = entry["debug_draw"] as Viewport.DebugDraw
@@ -112,10 +147,15 @@ func _take() -> void:
 		var camera := viewport.get_camera_3d()
 		if camera == null:
 			continue
+		var own_effect := SolidViewEffect.new()
+		var own_compositor := Compositor.new()
+		own_compositor.compositor_effects = [own_effect]
 		_entries.append({
 			"viewport": viewport,
 			"camera": camera,
 			"msaa_3d": viewport.msaa_3d,
+			"effect": own_effect,
+			"own_compositor": own_compositor,
 		})
 		viewport.msaa_3d = Viewport.MSAA_DISABLED
 	if not RenderingServer.frame_pre_draw.is_connected(before_draw):
@@ -131,7 +171,79 @@ func _restore() -> void:
 		RenderingServer.frame_post_draw.disconnect(after_draw)
 	after_draw()
 	for entry: Dictionary in _entries:
+		_free_xray(entry)
 		var viewport := entry["viewport"] as SubViewport
 		if is_instance_valid(viewport) and viewport.msaa_3d == Viewport.MSAA_DISABLED:
 			viewport.msaa_3d = entry["msaa_3d"] as Viewport.MSAA
 	_entries.clear()
+
+
+func _copy_options(own_effect: SolidViewEffect) -> void:
+	own_effect.shading = effect.shading
+	own_effect.texture_color = effect.texture_color
+	own_effect.base_color = effect.base_color
+	own_effect.background_color = effect.background_color
+	own_effect.cavity = effect.cavity
+	own_effect.outline = effect.outline
+	own_effect.matcap = effect.matcap
+
+
+## Adds the hidden overdraw viewport under this editor viewport, if it isn't
+## there yet. As a child, it shares the editor viewport's world and renders
+## before it.
+func _ensure_xray(entry: Dictionary) -> void:
+	if entry.has("xray_viewport") and is_instance_valid(entry["xray_viewport"]):
+		return
+	var viewport := entry["viewport"] as SubViewport
+	var ghost := SubViewport.new()
+	ghost.name = XRAY_VIEWPORT_NAME
+	ghost.debug_draw = Viewport.DEBUG_DRAW_OVERDRAW
+	ghost.msaa_3d = Viewport.MSAA_DISABLED
+	ghost.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	ghost.use_taa = false
+	ghost.use_debanding = false
+	# Keeps the render linear, so the shader reads the overdraw's green as is.
+	ghost.use_hdr_2d = true
+	ghost.positional_shadow_atlas_size = 0
+	ghost.gui_disable_input = true
+	ghost.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	ghost.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	var ghost_camera := Camera3D.new()
+	ghost_camera.environment = environment
+	ghost_camera.attributes = attributes
+	ghost_camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	ghost.add_child(ghost_camera)
+	viewport.add_child(ghost)
+	entry["xray_viewport"] = ghost
+	entry["xray_camera"] = ghost_camera
+
+
+## Matches the hidden viewport and its camera to the editor's for this draw.
+func _sync_xray(entry: Dictionary) -> void:
+	var viewport := entry["viewport"] as SubViewport
+	var camera := entry["camera"] as Camera3D
+	var ghost := entry["xray_viewport"] as SubViewport
+	var ghost_camera := entry["xray_camera"] as Camera3D
+	if ghost.size != viewport.size:
+		ghost.size = viewport.size
+	ghost_camera.global_transform = camera.global_transform
+	ghost_camera.projection = camera.projection
+	ghost_camera.keep_aspect = camera.keep_aspect
+	ghost_camera.fov = camera.fov
+	ghost_camera.size = camera.size
+	ghost_camera.near = camera.near
+	ghost_camera.far = camera.far
+	ghost_camera.h_offset = camera.h_offset
+	ghost_camera.v_offset = camera.v_offset
+	ghost_camera.frustum_offset = camera.frustum_offset
+	ghost_camera.cull_mask = camera.cull_mask & GAME_LAYERS
+
+
+func _free_xray(entry: Dictionary) -> void:
+	if not entry.has("xray_viewport"):
+		return
+	var ghost := entry["xray_viewport"] as SubViewport
+	if is_instance_valid(ghost):
+		ghost.queue_free()
+	entry.erase("xray_viewport")
+	entry.erase("xray_camera")

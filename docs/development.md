@@ -2,7 +2,7 @@
 
 ## Layout
 
-- `addons/solid_view/`: the addon, the only folder another project needs. `plugin.gd` builds the toolbar and shortcut; `solid_view_controller.gd` puts the mode on the four editor viewports and takes it off; `solid_view_effect.gd` is the `CompositorEffect` that drives `solid_view.glsl`; `solid_view_settings.gd` reads and writes the Editor Settings; `matcaps/` holds the bundled matcap.
+- `addons/solid_view/`: the addon, the only folder another project needs. `plugin.gd` builds the toolbar and shortcut; `solid_view_controller.gd` puts the mode on the four editor viewports and takes it off, and runs the hidden overdraw viewports for x-ray; `solid_view_effect.gd` is the `CompositorEffect` that drives `solid_view.glsl`; `solid_view_settings.gd` reads and writes the Editor Settings; `matcaps/` holds the bundled matcap.
 - `test/`: a scene with heavy fog, glow and coloured lights to prove the mode on, and the headless test.
 - `tools/`: `run_tests.sh`, `sync_to.sh <project>`, `capture.sh` with `capture.gd` (windowed screenshots of every mode into `docs/captures/`, gitignored) and `make_matcap.gd` (bakes `matcaps/clay.png`).
 - `docs/`: this file and the README images.
@@ -29,7 +29,7 @@ For the look:
 tools/capture.sh
 ```
 
-It pins the editor's view of the test scene by writing the scene's edit-state file (`.godot/editor/test_scene.tscn-editstate-<md5>.cfg`, which the editor reads when it opens the scene), then runs `tools/capture.gd` in a windowed editor under a scratch `HOME` at 1600x900. That opens `test/test_scene.tscn`, saves `docs/captures/before.png`, then one screenshot per mode with cavity and outline on, `studio_plain.png` with them off, and `after.png` with the mode off again. The README images are the viewport cropped out of those (`sips -c 1560 1880 --cropOffset 240 575`, resampled to 1000 wide).
+It pins the editor's view of the test scene by writing the scene's edit-state file (`.godot/editor/test_scene.tscn-editstate-<md5>.cfg`, which the editor reads when it opens the scene), then runs `tools/capture.gd` in a windowed editor under a scratch `HOME` at 1600x900. That opens `test/test_scene.tscn`, saves `docs/captures/before.png`, then one screenshot per mode with cavity and outline on, `studio_plain.png` with them off, `studio_xray.png` with x-ray on, and `after.png` with the mode off again. The README images are the viewport cropped out of those (`sips -c 1560 1880 --cropOffset 240 575`, resampled to 1000 wide).
 
 After changing `solid_view.glsl`, a windowed run is also the compile check: a bad shader prints `Solid View: the compute shader failed to compile` with the GLSL error.
 
@@ -41,6 +41,8 @@ After changing `solid_view.glsl`, a windowed run is also the compile check: a ba
 - The editor saves its View Environment toggle in the per-scene edit state as `use_environment = camera->get_environment().is_valid()`, and on load toggles the menu item whenever that differs from the camera. An environment left on the camera between frames is therefore saved as the user's choice, and the scene reopens with View Environment off and a grey background. So the controller only puts its environment, compositor and debug draw on the cameras between `RenderingServer.frame_pre_draw` and `frame_post_draw`; the editor renders single-threaded, so both fire synchronously around the draw and no editor code runs in between.
 - A `RefCounted` can't be named `_get`, `_set` or any other Object virtual; the settings helper is `_read`.
 - Preload constants need addon-specific names (`SolidViewSettings`, not `Settings`): a game project with a global `class_name` of the same name makes the plugin fail to parse there, even though it parses fine here.
+- X-ray rests on three editor facts, all checked in the 4.7.2 source: the Overdraw debug draw replaces every material with `blend_add, unshaded`, ALBEDO (0.4, 0.8, 0.8) and ALPHA 0.1 on a black clear, so each surface adds 0.08 of green and the layer count is `g / 0.08`; the editor cameras cull the game's 20 layers plus their own gizmo, grid and tool layers at bits 24 to 30, which the x-ray camera masks out; and the RenderingServer draws child viewports before their parents, so a SubViewport added under the editor's viewport is current in the same frame. The hidden viewport renders in HDR (`use_hdr_2d`) so its texture is linear and read as stored.
+- The overdraw material override only exists in builds with `DEBUG_ENABLED`, which every editor build is.
 
 ## Releasing
 
