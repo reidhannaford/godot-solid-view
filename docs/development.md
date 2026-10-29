@@ -52,5 +52,5 @@ After changing `workbench.glsl`, a windowed run is also the compile check: a bad
 2. Run `tools/run_tests.sh` and the capture.
 3. `git archive HEAD | tar -t` should list only the addon, `README.md`, `LICENSE` and `CHANGELOG.md`.
 4. Commit, tag `vX.Y.Z` and push the tag.
-5. `git archive --format=zip --prefix=workbench-X.Y.Z/ vX.Y.Z -o workbench-X.Y.Z.zip` makes the Asset Store upload: the addon folder with the licence and README copies, plus the root README, LICENSE and CHANGELOG. Attach it to the GitHub release and upload it on the store's Versions tab.
+5. `git archive --format=zip --prefix=workbench-X.Y.Z/ vX.Y.Z addons/ -o workbench-X.Y.Z.zip` makes the Asset Store upload: the addon folder only, with its own licence and README copies. Leave the root README, LICENSE and CHANGELOG out of this zip (a store reviewer asked for it after 1.3.0): the addon folder already has the README and licence, and loose files at the zip root are ambiguous and collide when several addons are installed into one project. Attach it to the GitHub release and upload it on the store's Versions tab.
 6. `tools/make_thumbnail.sh` rebuilds `docs/store/thumbnail.png` (16:9, the store's listing image) from the README images, if they changed.
