@@ -89,10 +89,10 @@ What to paste into each field of the Godot Asset Store (store.godotengine.org) w
 
 ## Versions
 
-- **Version name**: 1.3.0
+- **Version name**: 1.3.1
 - **Minimum Godot version**: 4.7
-- **File**: `workbench-1.3.0.zip` from the GitHub release (made with `git archive`, step 5 of Releasing in `docs/development.md`). It holds `addons/workbench/` with its licence and README copies, plus the root README, LICENSE and CHANGELOG.
-- **Changelog**: the 1.3.0 section of `CHANGELOG.md`.
+- **File**: `workbench-1.3.1.zip` from the GitHub release (made with `git archive`, step 5 of Releasing in `docs/development.md`). It holds only `addons/workbench/`, with its own licence and README copies.
+- **Changelog**: the 1.3.1 section of `CHANGELOG.md`.
 
 ## Pricing
 

@@ -10,7 +10,7 @@ A Godot 4.7+ editor addon that gives the 3D viewport the shading of Blender's **
 | **Normal matcap** | **Contrast matcap** |
 | ![The same view coloured by the direction each surface faces](docs/images/matcap_normal.webp) | ![The same view in two tones](docs/images/matcap_contrast.webp) |
 
-**Status: 1.3.0.** Forward+ only. Issues and pull requests are welcome; please say which Godot version and platform you're on.
+**Status: 1.3.1.** Forward+ only. Issues and pull requests are welcome; please say which Godot version and platform you're on.
 
 ## What it does
 
@@ -36,6 +36,8 @@ A Godot 4.7+ editor addon that gives the 3D viewport the shading of Blender's **
 Godot 4.7 or later, with the **Forward+** renderer: the shading reads the normal and roughness buffer that only Forward+ writes. Pure GDScript and one compute shader; no C# or GDExtension.
 
 ## Install
+
+Workbench is on the Godot Asset Store: [store.godotengine.org/asset/reid-hannaford/workbench](https://store.godotengine.org/asset/reid-hannaford/workbench/). Install it from there, or by hand:
 
 1. Copy `addons/workbench/` into your project's `addons/` folder. From a clone of this repo, `tools/sync_to.sh /path/to/your/project` does that and removes stale files from an older copy.
 2. Open **Project → Project Settings → Plugins** and enable **Workbench**.

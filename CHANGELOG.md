@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1, 2026-10-29
+
+- The release ZIP for the Asset Store holds only `addons/workbench/`, which already carries its own licence and README. The root README, LICENSE and CHANGELOG are no longer at the ZIP's root, where they were ambiguous and collided when several addons were installed into one project. No change to the addon itself.
+
 ## 1.3.0, 2026-10-28
 
 - Renamed to **Workbench**, after the Blender engine that draws its Solid mode, since the addon covers that mode's whole range: studio light, matcaps, texture colour, cavity, outlines and x-ray. The folder is `addons/workbench/`, the toolbar toggle says Workbench, the Editor Settings live under `workbench/…` and the shortcuts under `workbench/toggle` and `workbench/toggle_xray`. **Upgrading from Solid View:** delete `addons/solid_view/` (or run `tools/sync_to.sh`, which does), enable Workbench under Project Settings > Plugins, and set your options and shortcut bindings again, since the keys moved.
