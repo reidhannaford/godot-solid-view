@@ -1,6 +1,6 @@
 # <img src="icon.svg" width="40" alt="" align="top"> Workbench
 
-A Godot 4.7+ editor addon that gives the 3D viewport the shading of Blender's **Solid** mode, the one its Workbench engine draws: every surface lit by a fixed studio light or a matcap, in flat or texture colour, with cavity, outlines and x-ray, and the scene's lights, fog, glow, ambient and tonemapping out of the way. For laying out levels in a scene whose real lighting is dark, foggy or otherwise hard to see through.
+A Godot 4.7+ editor addon that gives the 3D viewport the shading of Blender's **Solid** mode, the one its Workbench engine draws: every surface lit by a fixed studio light or a matcap, in flat, texture or random colour, with cavity, outlines and x-ray, and the scene's lights, fog, glow, ambient and tonemapping out of the way. For laying out levels in a scene whose real lighting is dark, foggy or otherwise hard to see through.
 
 | Scene as lit | Workbench |
 | --- | --- |
@@ -23,13 +23,13 @@ A Godot 4.7+ editor addon that gives the 3D viewport the shading of Blender's **
   | ![Clay](addons/workbench/matcaps/clay.png) | ![Normal](addons/workbench/matcaps/normal.png) | ![Contrast](addons/workbench/matcaps/contrast.png) | ![Toon](addons/workbench/matcaps/toon.png) | ![Zebra](addons/workbench/matcaps/zebra.png) | ![Wax](addons/workbench/matcaps/wax.png) | ![Chrome](addons/workbench/matcaps/chrome.png) |
 
   Clay matches the studio light. Normal colours each surface by the direction it faces, as a normal map would, so facing up is green, right is pink and towards you is lavender. Contrast is two tones with a thin rim. Toon is three cel bands with a specular dot. Zebra reflects a striped room, so a smooth surface shows smooth stripes and a kink breaks them. Wax is red sculpting wax. Chrome reflects a bright sky over a dark floor.
-- **Flat or texture colour**: a plain grey, or each surface's own albedo (the viewport draws unshaded underneath, so textures show but scene lights don't).
+- **Flat, texture or random colour**: a plain grey; each surface's own albedo (the viewport draws unshaded underneath, so textures show but scene lights don't); or, as in Blender's Random mode, a colour of its own for every object, picked from its path in the scene, so it's the same each session.
 - **Cavity**: screen-space ridges brighten and valleys darken, as Blender's *Screen* cavity does.
 - **Outline**: a dark line where a surface drops away to something farther, or to the sky. Its width is `workbench/outline_width` in Editor Settings, in points, so it looks the same on any display.
 - **Crease Lines**: with Outline on, also a line along sharp creases within a surface, where neighbouring normals differ by more than 45 degrees. Blender has no such line; its creases show through Cavity only.
 - **X-ray**: see through the front surfaces to what is behind them, as Blender's X-ray does. **Alt+Shift+Z** by default (`workbench/toggle_xray`); the front surface's opacity is `workbench/xray_alpha` in Editor Settings. Alt+click in the viewport lists everything under the cursor, so hidden objects can be picked.
 - The editor's grid, gizmos, selection outline and any transparent objects still draw on top, as they would normally.
-- Nothing in the scene is touched. The addon only sets the editor cameras' environment and compositor and the editor viewports' debug draw, and only while a frame is being drawn; MSAA is off on the editor viewports for as long as the mode is on. Everything is put back when it's switched off or disabled.
+- Nothing in the scene is touched. The addon only sets the editor cameras' environment and compositor and the editor viewports' debug draw, and only while a frame is being drawn; MSAA is off on the editor viewports for as long as the mode is on. Random Colour also gives each object's render instance a material through the RenderingServer for as long as it's on: nodes and resources keep their own, and nothing reaches the saved scene. Everything is put back when it's switched off or disabled.
 
 ## Requirements
 
@@ -50,7 +50,7 @@ The menu next to the toggle:
 | Option | Effect |
 | --- | --- |
 | Studio Lighting / MatCap | How surfaces are shaded. |
-| Flat Colour / Texture Colour | A plain grey, or each surface's albedo. |
+| Flat Colour / Texture Colour / Random Colour | A plain grey, each surface's albedo, or a colour per object. |
 | Cavity | Ridges and valleys from the normals. |
 | Outline | Dark edge where depth jumps. |
 | Crease Lines | Also a line along creases sharper than 45 degrees. |
@@ -76,6 +76,7 @@ X-ray needs what the opaque pass throws away: the geometry behind the front surf
 - Objects whose material skips the depth prepass (transparent, `depth_draw_never`) keep their own look.
 - The outline is depth-based, not object-based: two touching objects at the same depth have no line between them.
 - X-ray knows how many surfaces are behind a pixel, not what they look like, so hidden geometry is a flat ghost with silhouette lines rather than shaded as Blender draws it. It costs a second, unshaded render of the scene per editor viewport.
+- Random Colour covers meshes, multimeshes and CSG. Sprites, particles, GridMaps and anything else drawn directly through the RenderingServer, such as some terrain addons, keep their albedo. It replaces every material with a double-sided one, so alpha-scissored leaves show as solid cards, transparent objects draw solid, vertex-shader displacement is gone, and any camera preview or SubViewport drawn in the same frame shows the random colours too. An object's colour comes from its path in the scene, so renaming or moving a parent recolours everything under it. Each draw walks the scene to keep the colours current.
 - The View menu's **View Environment** toggle has no visible effect while Workbench is on; its setting is kept and comes back when Workbench is off.
 
 ## Licence

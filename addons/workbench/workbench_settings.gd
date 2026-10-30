@@ -4,6 +4,8 @@ extends RefCounted
 ## follow the user between projects. Whether the view is on is not saved: it
 ## starts off, like a debug draw mode.
 
+const WorkbenchController := preload("workbench_controller.gd")
+
 const PREFIX := "workbench/"
 const MATCAP_DIR := "res://addons/workbench/matcaps/"
 const DEFAULT_MATCAP := MATCAP_DIR + "clay.png"
@@ -19,7 +21,7 @@ const BUNDLED_MATCAPS: Dictionary[String, String] = {
 }
 
 var shading: int = 0 # WorkbenchEffect.Shading
-var texture_color: bool = false
+var color_mode: int = 0 # WorkbenchController.ColorMode
 var cavity: bool = true
 var outline: bool = true
 var outline_width: float = 1.0
@@ -32,7 +34,13 @@ var matcap_path: String = DEFAULT_MATCAP
 func load() -> void:
 	var settings := EditorInterface.get_editor_settings()
 	shading = _read(settings, "shading", shading, TYPE_INT, PROPERTY_HINT_ENUM, "Studio Lighting,MatCap")
-	texture_color = _read(settings, "texture_color", texture_color, TYPE_BOOL)
+	# Up to 1.3 this was a bool, texture_color.
+	if settings.has_setting(PREFIX + "texture_color"):
+		if settings.get_setting(PREFIX + "texture_color") as bool:
+			settings.set_setting(PREFIX + "color_mode", WorkbenchController.ColorMode.TEXTURE)
+		settings.erase(PREFIX + "texture_color")
+	# Clamped: a hand-edited value past the enum would index past the menu.
+	color_mode = clampi(_read(settings, "color_mode", color_mode, TYPE_INT, PROPERTY_HINT_ENUM, "Flat,Texture,Random"), 0, WorkbenchController.ColorMode.size() - 1)
 	cavity = _read(settings, "cavity", cavity, TYPE_BOOL)
 	outline = _read(settings, "outline", outline, TYPE_BOOL)
 	outline_width = _read(settings, "outline_width", outline_width, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.5,4,0.5")
@@ -45,7 +53,7 @@ func load() -> void:
 func save() -> void:
 	var settings := EditorInterface.get_editor_settings()
 	settings.set_setting(PREFIX + "shading", shading)
-	settings.set_setting(PREFIX + "texture_color", texture_color)
+	settings.set_setting(PREFIX + "color_mode", color_mode)
 	settings.set_setting(PREFIX + "cavity", cavity)
 	settings.set_setting(PREFIX + "outline", outline)
 	settings.set_setting(PREFIX + "outline_width", outline_width)

@@ -52,12 +52,76 @@ func _run() -> void:
 	_check(viewport.debug_draw == debug_draw_before, "after the draw the debug draw is the editor's again")
 
 	viewport.msaa_3d = Viewport.MSAA_4X
-	controller.texture_color = true
+	controller.color_mode = WorkbenchController.ColorMode.TEXTURE
 	controller.before_draw()
 	_check(viewport.msaa_3d == Viewport.MSAA_DISABLED, "before_draw puts MSAA off again after the editor resets it")
 	_check(viewport.debug_draw == Viewport.DEBUG_DRAW_UNSHADED, "texture colour draws unshaded")
 	controller.after_draw()
 	_check(viewport.debug_draw == debug_draw_before, "debug draw restored after an unshaded draw")
+	controller.color_mode = WorkbenchController.ColorMode.FLAT
+
+	EditorInterface.open_scene_from_path("res://test/test_scene.tscn")
+	await process_frame
+	var scene_root := EditorInterface.get_edited_scene_root()
+	_check(scene_root != null, "the test scene opens")
+	if scene_root != null:
+		var ball := scene_root.get_node("Ball") as MeshInstance3D
+		var ball_id := ball.get_instance_id()
+		var ball_material := ball.get_surface_override_material(0)
+		controller.color_mode = WorkbenchController.ColorMode.RANDOM
+		controller.before_draw()
+		_check(viewport.debug_draw == Viewport.DEBUG_DRAW_UNSHADED, "random colour draws unshaded")
+		_check(camera.compositor.compositor_effects[0].texture_color, "the effect shades the random colour")
+		_check(controller._painted.size() == 9, "random colour paints the scene's nine meshes, not its lights or camera")
+		_check(ball.material_override == null, "the node's material override is untouched")
+		_check(ball.get_surface_override_material(0) == ball_material, "the node's surface material is untouched")
+		controller.after_draw()
+		_check(controller._painted.size() == 9, "the colours stay on between draws")
+		_check(viewport.debug_draw == debug_draw_before, "debug draw restored after a random colour draw")
+		var ball_hue: StandardMaterial3D = controller._painted[ball_id].material
+		var own_override := StandardMaterial3D.new()
+		ball.material_override = own_override
+		controller.before_draw()
+		_check(controller._painted[ball_id].own == own_override, "a new override on the node is seen, and painted over")
+		_check(controller._painted[ball_id].material == ball_hue, "the object keeps its hue")
+		controller.after_draw()
+		ball.material_override = null
+		var ball_parent := ball.get_parent()
+		ball_parent.remove_child(ball)
+		controller.before_draw()
+		_check(controller._painted.size() == 8 and not controller._painted.has(ball_id), "an object that left the scene is unpainted")
+		controller.after_draw()
+		ball_parent.add_child(ball)
+		controller.before_draw()
+		_check(controller._painted.has(ball_id), "an object back in the scene is painted again")
+		controller.active = false
+		_check(controller._painted.is_empty(), "deactivating mid-draw unpaints the objects")
+		controller.active = true
+		controller.before_draw()
+		controller.after_draw()
+		controller.color_mode = WorkbenchController.ColorMode.FLAT
+		_check(controller._painted.is_empty(), "flat colour takes the colours off")
+		controller.before_draw()
+		_check(controller._painted.is_empty(), "flat colour paints nothing")
+		_check(viewport.debug_draw == Viewport.DEBUG_DRAW_DISABLED, "back to a normal draw without random colour")
+		controller.after_draw()
+		var csg_root := CSGBox3D.new()
+		var csg_child := CSGBox3D.new()
+		csg_root.add_child(csg_child)
+		_check(WorkbenchController.paints_random_color(csg_root), "a CSG root is painted")
+		_check(not WorkbenchController.paints_random_color(csg_child), "a CSG child is not: only its root renders")
+		csg_root.free()
+		var multimesh := MultiMeshInstance3D.new()
+		_check(WorkbenchController.paints_random_color(multimesh), "a multimesh is painted")
+		multimesh.free()
+		for other: Node in [Sprite3D.new(), Label3D.new(), GPUParticles3D.new(), DirectionalLight3D.new()]:
+			_check(not WorkbenchController.paints_random_color(other), "a %s is not painted" % other.get_class())
+			other.free()
+		var hues: Dictionary[int, bool] = {}
+		for node_name: String in ["Floor", "Wall", "Wall2", "Wall3", "Crate", "CrateOnTop", "Ball", "Pillar", "Ring"]:
+			hues[WorkbenchController.random_hue_index(node_name)] = true
+		_check(hues.size() >= 7, "similar names get different hues")
+		_check(WorkbenchController.random_hue_index("Wall2") == WorkbenchController.random_hue_index("Wall2"), "a path always gets the same hue")
 
 	controller.xray = true
 	controller.before_draw()
@@ -110,6 +174,16 @@ func _run() -> void:
 	_check(matcap_menu != null and matcap_menu.item_count == WorkbenchSettings.BUNDLED_MATCAPS.size(), "the Bundled MatCaps submenu lists every bundled matcap")
 
 	var settings := EditorInterface.get_editor_settings()
+	settings.set_setting("workbench/texture_color", true)
+	var migrated := WorkbenchSettings.new()
+	migrated.load()
+	_check(migrated.color_mode == WorkbenchController.ColorMode.TEXTURE, "the old texture colour setting carries over")
+	settings.set_setting("workbench/color_mode", 7)
+	var clamped := WorkbenchSettings.new()
+	clamped.load()
+	_check(clamped.color_mode == WorkbenchController.ColorMode.RANDOM, "a colour mode past the enum is clamped")
+	settings.set_setting("workbench/color_mode", WorkbenchController.ColorMode.FLAT)
+	_check(not settings.has_setting("workbench/texture_color"), "the old texture colour setting is removed")
 	_check(settings.has_shortcut("workbench/toggle"), "the shortcut is registered")
 	_check(settings.has_shortcut("workbench/toggle_xray"), "the x-ray shortcut is registered")
 
