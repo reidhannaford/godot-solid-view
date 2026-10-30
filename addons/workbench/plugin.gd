@@ -11,7 +11,7 @@ const WorkbenchEffect := preload("workbench_effect.gd")
 const SHORTCUT_PATH := "workbench/toggle"
 const XRAY_SHORTCUT_PATH := "workbench/toggle_xray"
 
-enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, XRAY, CREASE }
+enum Item { STUDIO, MATCAP, FLAT, TEXTURE, CAVITY, OUTLINE, CHOOSE_MATCAP, XRAY, CREASE, RANDOM }
 ## Ids of the bundled matcaps in their submenu: this plus their index.
 const MATCAP_ID_BASE := 100
 
@@ -124,7 +124,7 @@ func _apply_settings() -> void:
 	effect.outline_width = _settings.outline_width * EditorInterface.get_editor_scale()
 	effect.crease = _settings.crease
 	effect.matcap = _settings.load_matcap()
-	_controller.texture_color = _settings.texture_color
+	_controller.color_mode = _settings.color_mode as WorkbenchController.ColorMode
 	_controller.xray = _settings.xray
 	_controller.xray_alpha = _settings.xray_alpha
 
@@ -149,6 +149,7 @@ func _build_menu() -> void:
 	popup.add_separator()
 	popup.add_radio_check_item("Flat Colour", Item.FLAT)
 	popup.add_radio_check_item("Texture Colour", Item.TEXTURE)
+	popup.add_radio_check_item("Random Colour", Item.RANDOM)
 	popup.add_separator()
 	popup.add_check_item("Cavity", Item.CAVITY)
 	popup.add_check_item("Outline", Item.OUTLINE)
@@ -173,8 +174,9 @@ func _sync_menu() -> void:
 	var popup := _menu.get_popup()
 	popup.set_item_checked(popup.get_item_index(Item.STUDIO), _settings.shading == WorkbenchEffect.Shading.STUDIO)
 	popup.set_item_checked(popup.get_item_index(Item.MATCAP), _settings.shading == WorkbenchEffect.Shading.MATCAP)
-	popup.set_item_checked(popup.get_item_index(Item.FLAT), not _settings.texture_color)
-	popup.set_item_checked(popup.get_item_index(Item.TEXTURE), _settings.texture_color)
+	popup.set_item_checked(popup.get_item_index(Item.FLAT), _settings.color_mode == WorkbenchController.ColorMode.FLAT)
+	popup.set_item_checked(popup.get_item_index(Item.TEXTURE), _settings.color_mode == WorkbenchController.ColorMode.TEXTURE)
+	popup.set_item_checked(popup.get_item_index(Item.RANDOM), _settings.color_mode == WorkbenchController.ColorMode.RANDOM)
 	popup.set_item_checked(popup.get_item_index(Item.CAVITY), _settings.cavity)
 	popup.set_item_checked(popup.get_item_index(Item.OUTLINE), _settings.outline)
 	popup.set_item_checked(popup.get_item_index(Item.CREASE), _settings.crease)
@@ -193,9 +195,11 @@ func _on_menu_pressed(id: int) -> void:
 		Item.MATCAP:
 			_settings.shading = WorkbenchEffect.Shading.MATCAP
 		Item.FLAT:
-			_settings.texture_color = false
+			_settings.color_mode = WorkbenchController.ColorMode.FLAT
 		Item.TEXTURE:
-			_settings.texture_color = true
+			_settings.color_mode = WorkbenchController.ColorMode.TEXTURE
+		Item.RANDOM:
+			_settings.color_mode = WorkbenchController.ColorMode.RANDOM
 		Item.CAVITY:
 			_settings.cavity = not _settings.cavity
 		Item.OUTLINE:
@@ -257,4 +261,5 @@ func _update_tooltip() -> void:
 	var xray_text := ""
 	if settings.has_shortcut(XRAY_SHORTCUT_PATH):
 		xray_text = "\nX-ray: %s (%s)." % ["on" if _settings.xray else "off", settings.get_shortcut(XRAY_SHORTCUT_PATH).get_as_text()]
-	_toggle.tooltip_text = "Workbench%s\n%s, %s colour.%s" % [shortcut_text, mode, "texture" if _settings.texture_color else "flat", xray_text]
+	var color_text: String = ["flat", "texture", "random"][_settings.color_mode]
+	_toggle.tooltip_text = "Workbench%s\n%s, %s colour.%s" % [shortcut_text, mode, color_text, xray_text]

@@ -13,7 +13,7 @@ What to paste into each field of the Godot Asset Store (store.godotengine.org) w
 
 **Summary** (up to 500 characters, 422 used):
 
-> Blender's Workbench shading for the 3D editor viewport. A toolbar toggle lights every surface with a fixed studio light or a matcap, in flat or texture colour, with cavity, outlines, crease lines and x-ray, and keeps the scene's own lights, fog, glow and tonemapping out of the way. For laying out levels in scenes whose real lighting is dark, foggy or otherwise hard to see through. Godot 4.7 or later, Forward+ renderer.
+> Blender's Workbench shading for the 3D editor viewport. A toolbar toggle lights every surface with a fixed studio light or a matcap, in flat, texture or random colour, with cavity, outlines, crease lines and x-ray, and keeps the scene's own lights, fog, glow and tonemapping out of the way. For laying out levels in scenes whose real lighting is dark, foggy or otherwise hard to see through. Godot 4.7 or later, Forward+ renderer.
 
 **Description** (Markdown, up to 20000 characters, 4827 used):
 
@@ -23,7 +23,7 @@ What to paste into each field of the Godot Asset Store (store.godotengine.org) w
 >
 > - **Studio lighting**: a warm key, a cool fill and a faint rim, fixed to the view, so nothing is ever in the dark.
 > - **MatCaps**: a sphere image sampled by view-space normal. Seven are bundled: clay, normal (each surface coloured by the direction it faces), contrast (two tones with a rim), toon (three cel bands), zebra (a reflection check), wax and chrome. **Choose MatCap…** takes any image in the project, including the matcaps that ship with Blender.
-> - **Flat or texture colour**: a plain grey, or each surface's own albedo under the studio light or matcap.
+> - **Flat, texture or random colour**: a plain grey, each surface's own albedo, or a colour of its own for every object, under the studio light or matcap.
 > - **Cavity**: screen-space ridges brighten and valleys darken, like Blender's screen cavity.
 > - **Outline**: a dark line where a surface drops away to something farther, or to the sky. The width is set in points, so it looks the same on any display.
 > - **Crease lines**: with the outline on, a line along creases sharper than 45 degrees, so a box's corner edges get lines as well as its silhouette.
@@ -37,7 +37,7 @@ What to paste into each field of the Godot Asset Store (store.godotengine.org) w
 >
 > ## Options
 >
-> The menu beside the toggle holds Studio Lighting or MatCap, Flat or Texture Colour, Cavity, Outline, Crease Lines, X-Ray, the bundled matcaps and **Choose MatCap…**. Several options can be changed with the menu open. Editor Settings > Workbench holds the outline width and the x-ray opacity, and changes there apply at once. All options are Editor Settings, so they follow you between projects; the toggle itself starts off every session.
+> The menu beside the toggle holds Studio Lighting or MatCap, Flat, Texture or Random Colour, Cavity, Outline, Crease Lines, X-Ray, the bundled matcaps and **Choose MatCap…**. Several options can be changed with the menu open. Editor Settings > Workbench holds the outline width and the x-ray opacity, and changes there apply at once. All options are Editor Settings, so they follow you between projects; the toggle itself starts off every session.
 >
 > The shortcuts are `workbench/toggle` (Alt+Z) and `workbench/toggle_xray` (Alt+Shift+Z) in Editor Settings > Shortcuts.
 >

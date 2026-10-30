@@ -26,8 +26,20 @@ extends RefCounted
 ## depth, as a fixed amount of green on black. A child viewport renders before
 ## its parent in the same frame, so the count of surfaces under each pixel is
 ## current when the effect blends it in.
+##
+## Random colour has nothing per object to read from a camera or viewport, so
+## each object's render instance gets a material in its own colour through the
+## RenderingServer, for as long as the mode is on: the server has no getter for
+## it and the editor reads nodes, so the node, its resources and the saved
+## scene never see it. The viewport draws unshaded as for texture colour, and
+## the effect shades that colour the same way.
 
 const WorkbenchEffect := preload("workbench_effect.gd")
+
+## Where a pixel's colour comes from: a flat grey, the albedo in the colour
+## buffer, or a colour of the object's own.
+enum ColorMode { FLAT, TEXTURE, RANDOM }
+
 const VIEWPORT_COUNT := 4
 ## Blender's default viewport grey, as a display colour.
 const BACKGROUND := Color(0.24, 0.24, 0.24)
@@ -35,6 +47,11 @@ const BACKGROUND := Color(0.24, 0.24, 0.24)
 ## grid and tool layers above; the x-ray camera only wants the game's.
 const GAME_LAYERS := (1 << 20) - 1
 const XRAY_VIEWPORT_NAME := "WorkbenchXray"
+## Random colour varies only the hue, at Blender's saturation and value, so
+## more steps than this could not be told apart. Linear, like the base colour.
+const RANDOM_HUES := 64
+const RANDOM_SATURATION := 0.5
+const RANDOM_VALUE := 0.8
 
 ## The options, read by every viewport's own effect before each draw.
 var effect: WorkbenchEffect
@@ -48,11 +65,13 @@ var active: bool = false:
 				_take()
 			else:
 				_restore()
-## Shade with the albedo from the colour buffer instead of a flat colour.
-var texture_color: bool = false:
+## How surfaces are coloured. Leaving random colour takes it off every object.
+var color_mode: ColorMode = ColorMode.FLAT:
 	set(value):
-		texture_color = value
-		effect.texture_color = value
+		color_mode = value
+		effect.texture_color = color_mode != ColorMode.FLAT
+		if color_mode != ColorMode.RANDOM:
+			_unpaint_all()
 ## See through the front surfaces to the geometry behind them.
 var xray: bool = false
 ## How opaque the front surface is in x-ray.
@@ -65,6 +84,18 @@ var xray_alpha: float = 0.5
 var _entries: Array[Dictionary] = []
 ## True between [method before_draw] and [method after_draw].
 var _drawing: bool = false
+## One unshaded material per hue, made the first time random colour draws.
+var _hue_materials: Array[StandardMaterial3D] = []
+## The objects whose render instance carries a random colour, by instance id.
+var _painted: Dictionary[int, Painted] = {}
+
+
+## What a painted object's render instance was given, and the override its
+## node had at the time: a change to either means a repaint.
+class Painted:
+	var object: GeometryInstance3D
+	var material: StandardMaterial3D
+	var own: Material
 
 
 func _init() -> void:
@@ -87,9 +118,11 @@ func _notification(what: int) -> void:
 ## Puts the workbench state on every editor viewport for the draw that
 ## follows. Connected to [signal RenderingServer.frame_pre_draw] while active.
 func before_draw() -> void:
-	if not active or _drawing:
+	if not active or _drawing or not _shown():
 		return
 	_drawing = true
+	if color_mode == ColorMode.RANDOM:
+		_paint_objects()
 	for entry: Dictionary in _entries:
 		var camera := entry["camera"] as Camera3D
 		var viewport := entry["viewport"] as SubViewport
@@ -115,7 +148,7 @@ func before_draw() -> void:
 		camera.compositor = entry["own_compositor"] as Compositor
 		if viewport.msaa_3d != Viewport.MSAA_DISABLED:
 			viewport.msaa_3d = Viewport.MSAA_DISABLED
-		viewport.debug_draw = Viewport.DEBUG_DRAW_UNSHADED if texture_color else Viewport.DEBUG_DRAW_DISABLED
+		viewport.debug_draw = Viewport.DEBUG_DRAW_UNSHADED if color_mode != ColorMode.FLAT else Viewport.DEBUG_DRAW_DISABLED
 
 
 ## Puts the editor's own camera and viewport state back after a draw.
@@ -170,12 +203,28 @@ func _restore() -> void:
 	if RenderingServer.frame_post_draw.is_connected(after_draw):
 		RenderingServer.frame_post_draw.disconnect(after_draw)
 	after_draw()
+	_unpaint_all()
 	for entry: Dictionary in _entries:
 		_free_xray(entry)
 		var viewport := entry["viewport"] as SubViewport
 		if is_instance_valid(viewport) and viewport.msaa_3d == Viewport.MSAA_DISABLED:
 			viewport.msaa_3d = entry["msaa_3d"] as Viewport.MSAA
 	_entries.clear()
+
+
+## Whether any editor viewport taken is on screen. On the 2D or Script screen
+## nothing draws, so there is nothing to set up, and leaving the server alone
+## lets the editor idle: it redraws while its change counter is up, which
+## every server write raises, including the restores after a draw.
+func _shown() -> bool:
+	for entry: Dictionary in _entries:
+		var viewport := entry["viewport"] as SubViewport
+		if not is_instance_valid(viewport):
+			continue
+		var container := viewport.get_parent() as Control
+		if container != null and container.is_visible_in_tree():
+			return true
+	return false
 
 
 func _copy_options(own_effect: WorkbenchEffect) -> void:
@@ -188,6 +237,88 @@ func _copy_options(own_effect: WorkbenchEffect) -> void:
 	own_effect.outline_width = effect.outline_width
 	own_effect.crease = effect.crease
 	own_effect.matcap = effect.matcap
+
+
+## Which of the [constant RANDOM_HUES] hues the object at this path gets, the
+## same every time. Mixed through the generator because a string hash of
+## "Wall2" and "Wall3" differs only in its low bits, which would pick
+## neighbouring hues.
+static func random_hue_index(path: String) -> int:
+	return rand_from_seed(path.hash())[0] % RANDOM_HUES
+
+
+## Whether random colour applies to this node: meshes, not the camera-facing
+## quads of sprites and particles, which would draw as solid rectangles. Only
+## the root of a CSG tree renders.
+static func paints_random_color(node: Node) -> bool:
+	if node is CSGShape3D:
+		return (node as CSGShape3D).is_root_shape()
+	return node is MeshInstance3D or node is MultiMeshInstance3D
+
+
+## Gives every object in the edited scene a colour on its render instance, and
+## takes it off the objects that have left the scene. Each node's path picks
+## the colour, so an object keeps it between sessions. An object already
+## carrying its colour is left alone: a server write rebuilds the instance's
+## surfaces, so only a change is written. A new override on the node is such a
+## change, as the node's setter puts it on the render instance over ours.
+func _paint_objects() -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	var nodes: Array[Node] = []
+	if root != null:
+		nodes = root.find_children("*", "GeometryInstance3D", true, false)
+		nodes.append(root)
+	if _hue_materials.is_empty():
+		_make_hue_materials()
+	var seen: Dictionary[int, bool] = {}
+	for node: Node in nodes:
+		if not paints_random_color(node):
+			continue
+		var object := node as GeometryInstance3D
+		var id := object.get_instance_id()
+		seen[id] = true
+		var material := _hue_materials[random_hue_index(String(root.get_path_to(object)))]
+		var own := object.material_override
+		var painted: Painted = _painted.get(id)
+		if painted != null and painted.material == material and painted.own == own:
+			continue
+		if painted == null:
+			painted = Painted.new()
+			painted.object = object
+			_painted[id] = painted
+		painted.material = material
+		painted.own = own
+		RenderingServer.instance_geometry_set_material_override(object.get_instance(), material.get_rid())
+	for id: int in _painted.keys():
+		if not seen.has(id):
+			_unpaint(_painted[id])
+			_painted.erase(id)
+
+
+## Puts the node's own override back on a painted object's render instance.
+func _unpaint(painted: Painted) -> void:
+	if not is_instance_valid(painted.object):
+		return
+	var own := painted.object.material_override
+	RenderingServer.instance_geometry_set_material_override(painted.object.get_instance(), own.get_rid() if own != null else RID())
+
+
+func _unpaint_all() -> void:
+	for painted: Painted in _painted.values():
+		_unpaint(painted)
+	_painted.clear()
+
+
+func _make_hue_materials() -> void:
+	for index: int in RANDOM_HUES:
+		var material := StandardMaterial3D.new()
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		# Double-sided, as Blender's Solid mode draws by default, so a plane in
+		# a double-sided material doesn't vanish from behind.
+		material.cull_mode = BaseMaterial3D.CULL_DISABLED
+		# A material's albedo is sRGB and these values are meant as linear.
+		material.albedo_color = Color.from_hsv(float(index) / RANDOM_HUES, RANDOM_SATURATION, RANDOM_VALUE).linear_to_srgb()
+		_hue_materials.append(material)
 
 
 ## Adds the hidden overdraw viewport under this editor viewport, if it isn't

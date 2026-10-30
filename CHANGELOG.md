@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Random Colour**: beside Flat and Texture Colour, every object gets a colour of its own, as in Blender's Random mode, picked from its path in the scene so it's the same each session. Covers meshes, multimeshes and CSG. The `workbench/texture_color` setting is now `workbench/color_mode`; an existing value carries over.
+
 ## 1.3.1, 2026-10-29
 
 - The release ZIP for the Asset Store holds only `addons/workbench/`, which already carries its own licence and README. The root README, LICENSE and CHANGELOG are no longer at the ZIP's root, where they were ambiguous and collided when several addons were installed into one project. No change to the addon itself.
